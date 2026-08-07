@@ -1,0 +1,49 @@
+generator client { provider = "prisma-client-js" }
+datasource db { provider = "postgresql"; url = env("DATABASE_URL") }
+
+enum UserRole { CITIZEN STUDENT LAWYER ADMIN }
+enum BookingStatus { PENDING CONFIRMED COMPLETED CANCELLED }
+enum ConsultationStatus { OPEN ANSWERED CLOSED }
+
+model User {
+  id String @id @default(cuid())
+  email String @unique
+  name String
+  imageUrl String?
+  role UserRole @default(CITIZEN)
+  locale String @default("es")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  lawyerProfile LawyerProfile?
+  bookingsAsClient Booking[] @relation("ClientBookings")
+  consultations Consultation[]
+  posts Post[]
+  auditLogs AuditLog[]
+}
+
+model LawyerProfile {
+  id String @id @default(cuid())
+  userId String @unique
+  headline String
+  bio String?
+  city String?
+  priceCents Int
+  rating Float @default(0)
+  reviewCount Int @default(0)
+  verified Boolean @default(false)
+  languages String[]
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  specialties LawyerSpecialty[]
+  availability Availability[]
+  bookings Booking[] @relation("LawyerBookings")
+}
+
+model Specialty { id String @id @default(cuid()); name String @unique; lawyers LawyerSpecialty[] }
+model LawyerSpecialty { lawyerId String; specialtyId String; lawyer LawyerProfile @relation(fields:[lawyerId],references:[id],onDelete:Cascade); specialty Specialty @relation(fields:[specialtyId],references:[id],onDelete:Cascade); @@id([lawyerId,specialtyId]) }
+model Availability { id String @id @default(cuid()); lawyerId String; startsAt DateTime; endsAt DateTime; booked Boolean @default(false); lawyer LawyerProfile @relation(fields:[lawyerId],references:[id],onDelete:Cascade); @@index([lawyerId,startsAt]) }
+model Booking { id String @id @default(cuid()); clientId String; lawyerId String; availabilityId String?; status BookingStatus @default(PENDING); notes String?; createdAt DateTime @default(now()); client User @relation("ClientBookings",fields:[clientId],references:[id]); lawyer LawyerProfile @relation("LawyerBookings",fields:[lawyerId],references:[id]); @@index([clientId,status]) }
+model Consultation { id String @id @default(cuid()); userId String; title String; messages Json; status ConsultationStatus @default(OPEN); createdAt DateTime @default(now()); user User @relation(fields:[userId],references:[id],onDelete:Cascade) }
+model Course { id String @id @default(cuid()); title String; description String; level String; published Boolean @default(false); createdAt DateTime @default(now()) }
+model Resource { id String @id @default(cuid()); title String; type String; url String; category String; createdAt DateTime @default(now()) }
+model Post { id String @id @default(cuid()); authorId String; body String; tags String[]; createdAt DateTime @default(now()); author User @relation(fields:[authorId],references:[id],onDelete:Cascade) }
+model AuditLog { id String @id @default(cuid()); userId String?; action String; metadata Json?; createdAt DateTime @default(now()); user User? @relation(fields:[userId],references:[id],onDelete:SetNull); @@index([createdAt]) }
