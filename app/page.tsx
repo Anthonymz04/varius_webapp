@@ -19,6 +19,7 @@ import {
 import { useAuth } from '@/lib/auth-context';
 import LawyerCard from '@/app/components/LawyerCard';
 import AuthDialog from '@/app/components/AuthDialog';
+import HeroCarousel from '@/app/components/HeroCarousel';
 import type { LawyerData } from '@/app/components/LawyerCard';
 
 /* ── Mock data ── */
@@ -81,50 +82,8 @@ function LandingPage() {
 
   return (
     <>
-      {/* Hero with background image */}
-      <section className="landing-hero" style={{ backgroundImage: 'url(/hero.png)' }}>
-        <div className="landing-hero-content">
-          <h1>
-            Tu Derecho,<br />más <span>cerca</span>
-          </h1>
-          <p className="lead">
-            Conectamos personas, estudiantes y profesionales en un ecosistema jurídico
-            inteligente. Orientación legal con IA, abogados verificados y recursos de la
-            legislación ecuatoriana.
-          </p>
-          <div className="landing-ctas">
-            <button className="landing-btn primary compact" onClick={() => setAuthOpen(true)}>
-              Comenzar gratis <ArrowRight size={16} />
-            </button>
-            <Link href="/biblioteca" className="landing-btn secondary compact">
-              Explorar biblioteca
-            </Link>
-          </div>
-          <p className="landing-trust">
-            <CheckCircle size={14} /> Orientación basada en legislación ecuatoriana
-          </p>
-        </div>
-        <div className="landing-hero-visual">
-          <div className="landing-chat-preview">
-            <div className="landing-chat-header">
-              <div className="ai-icon"><Bot size={17} /></div>
-              <div>
-                <b>Asistente jurídico</b>
-                <span><i />En línea</span>
-              </div>
-            </div>
-            <div className="landing-chat-msg ai">
-              <p>Hola. ¿En qué asunto legal puedo orientarte hoy?</p>
-            </div>
-            <div className="landing-chat-msg user">
-              <p>Me despidieron sin justificación, ¿qué derechos tengo?</p>
-            </div>
-            <div className="landing-chat-msg ai">
-              <p>Según el Código del Trabajo de Ecuador, tienes derecho a indemnización por despido intempestivo…</p>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Hero Carousel */}
+      <HeroCarousel onOpenAuth={() => setAuthOpen(true)} />
 
       {/* How it works */}
       <section className="landing-section">
