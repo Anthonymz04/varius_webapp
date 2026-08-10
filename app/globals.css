@@ -2153,22 +2153,41 @@ h2 {
   max-width: 80%;
 }
 
-/* Landing: sections shared */
+/* Landing: sections shared (Full-bleed section + centered container) */
 .landing-section {
-  padding: 56px max(5vw, 32px);
-  text-align: center;
+  width: 100%;
+  padding: 64px 0;
+  box-sizing: border-box;
+}
+
+.landing-container {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 24px;
+  box-sizing: border-box;
 }
 
 .landing-section .section-title {
   text-align: left;
 }
 
-.landing-section > .eyebrow {
-  margin-bottom: 10px;
+.landing-section .eyebrow,
+.eyebrow {
+  font-size: 12px;
+  letter-spacing: 1.2px;
+  font-weight: 700;
+  color: #9b9092;
+  margin-bottom: 8px;
+  display: block;
 }
 
-.landing-section > h2 {
-  margin-bottom: 8px;
+.landing-section h2 {
+  font-size: 28px;
+  font-family: var(--font-manrope);
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  margin: 0 0 10px;
+  color: var(--ink);
 }
 
 /* Landing: How it works */
@@ -2181,39 +2200,42 @@ h2 {
 }
 
 .landing-step {
-  padding: 30px 24px;
+  padding: 32px 24px;
   border: 1px solid var(--line);
   border-radius: 16px;
+  background: #fff;
   transition: 0.2s;
 }
 
 .landing-step:hover {
   border-color: #e2b3c7;
   transform: translateY(-3px);
-  box-shadow: 0 12px 25px #21111110;
+  box-shadow: 0 12px 25px rgba(33, 17, 17, 0.08);
 }
 
 .step-number {
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   background: var(--wine);
   color: #fff;
   display: grid;
   place-items: center;
-  font: 700 16px var(--font-manrope);
-  margin: 0 auto 16px;
+  font: 800 17px var(--font-manrope);
+  margin: 0 auto 18px;
 }
 
 .landing-step h3 {
-  font-size: 16px;
-  margin-bottom: 8px;
+  font-size: 17px;
+  font-family: var(--font-manrope);
+  font-weight: 700;
+  margin-bottom: 10px;
 }
 
 .landing-step p {
-  font-size: 12px;
-  color: #777;
-  line-height: 1.5;
+  font-size: 14px;
+  color: #666;
+  line-height: 1.6;
   margin: 0;
 }
 
@@ -2233,14 +2255,14 @@ h2 {
   background: #fff;
   border: 1px solid var(--line);
   border-radius: 16px;
-  padding: 28px 22px;
+  padding: 30px 22px;
   text-align: center;
   transition: 0.2s;
 }
 
 .benefit-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 12px 25px #21111110;
+  box-shadow: 0 12px 25px rgba(33, 17, 17, 0.08);
 }
 
 .benefit-card svg {
@@ -2249,14 +2271,16 @@ h2 {
 }
 
 .benefit-card h3 {
-  font-size: 15px;
+  font-size: 16px;
+  font-family: var(--font-manrope);
+  font-weight: 700;
   margin-bottom: 8px;
 }
 
 .benefit-card p {
-  font-size: 12px;
-  color: #777;
-  line-height: 1.5;
+  font-size: 13px;
+  color: #666;
+  line-height: 1.55;
   margin: 0;
 }
 
@@ -2276,8 +2300,8 @@ h2 {
 .library-preview-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
-  margin-top: 24px;
+  gap: 16px;
+  margin-top: 28px;
   text-align: left;
 }
 
@@ -2285,24 +2309,26 @@ h2 {
   background: #fff;
   border: 1px solid var(--line);
   border-radius: 14px;
-  padding: 20px;
+  padding: 24px 20px;
   transition: 0.2s;
 }
 
 .library-preview-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px #1c141508;
+  box-shadow: 0 8px 20px rgba(28, 20, 21, 0.08);
 }
 
 .library-preview-card h3 {
-  font-size: 14px;
-  margin: 8px 0 6px;
+  font-size: 15px;
+  font-family: var(--font-manrope);
+  font-weight: 700;
+  margin: 10px 0 6px;
 }
 
 .library-preview-card p {
-  font-size: 11px;
-  color: #888;
-  line-height: 1.45;
+  font-size: 13px;
+  color: #666;
+  line-height: 1.5;
   margin: 0;
 }
 

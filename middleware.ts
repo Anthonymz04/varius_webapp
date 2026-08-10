@@ -10,4 +10,7 @@ export function middleware(_request: NextRequest) {
   return response;
 }
 
-export const config = { matcher: '/:path*' };
+// Exclude static files, images, icons, and next internals from middleware
+export const config = {
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|webmanifest|js|css)$).*)'],
+};

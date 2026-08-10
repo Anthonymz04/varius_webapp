@@ -82,139 +82,147 @@ function LandingPage() {
 
   return (
     <>
-      {/* Hero Carousel */}
+      {/* Hero Carousel (Full-bleed slider) */}
       <HeroCarousel onOpenAuth={() => setAuthOpen(true)} />
 
-      {/* How it works */}
+      {/* How it works (White background section + centered container) */}
       <section className="landing-section">
-        <p className="eyebrow">¿CÓMO FUNCIONA?</p>
-        <h2>Tres pasos para acceder al Derecho</h2>
-        <div className="landing-steps">
-          <div className="landing-step">
-            <div className="step-number">1</div>
-            <h3>Elige tu perfil</h3>
-            <p>Ciudadano, estudiante o abogado. Cada uno tiene una experiencia adaptada.</p>
-          </div>
-          <div className="landing-step">
-            <div className="step-number">2</div>
-            <h3>Identifica tu necesidad</h3>
-            <p>Consulta la IA, busca un abogado o explora recursos legales de Ecuador.</p>
-          </div>
-          <div className="landing-step">
-            <div className="step-number">3</div>
-            <h3>Conecta con la solución</h3>
-            <p>Te orientamos hacia el profesional, recurso o herramienta adecuada.</p>
+        <div className="landing-container">
+          <p className="eyebrow">¿CÓMO FUNCIONA?</p>
+          <h2>Tres pasos para acceder al Derecho</h2>
+          <div className="landing-steps">
+            <div className="landing-step">
+              <div className="step-number">1</div>
+              <h3>Elige tu perfil</h3>
+              <p>Ciudadano, estudiante o abogado. Cada uno tiene una experiencia adaptada.</p>
+            </div>
+            <div className="landing-step">
+              <div className="step-number">2</div>
+              <h3>Identifica tu necesidad</h3>
+              <p>Consulta la IA, busca un abogado o explora recursos legales de Ecuador.</p>
+            </div>
+            <div className="landing-step">
+              <div className="step-number">3</div>
+              <h3>Conecta con la solución</h3>
+              <p>Te orientamos hacia el profesional, recurso o herramienta adecuada.</p>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Benefits */}
+      {/* Benefits (Light gray background section + centered container) */}
       <section className="landing-section landing-benefits">
-        <p className="eyebrow">¿POR QUÉ VARIUS?</p>
-        <h2>Un ecosistema jurídico integral</h2>
-        <div className="benefits-grid">
-          <div className="benefit-card">
-            <Bot size={28} />
-            <h3>Asistente IA jurídico</h3>
-            <p>Resuelve dudas legales al instante con inteligencia artificial enfocada en legislación ecuatoriana.</p>
-          </div>
-          <div className="benefit-card">
-            <Users size={28} />
-            <h3>Abogados verificados</h3>
-            <p>Conecta con profesionales reales filtrados por especialidad, ciudad y calificación.</p>
-          </div>
-          <div className="benefit-card">
-            <Scale size={28} />
-            <h3>Biblioteca legal</h3>
-            <p>Constitución, COIP, Código del Trabajo, guías prácticas y modelos de documentos.</p>
-          </div>
-          <div className="benefit-card">
-            <Shield size={28} />
-            <h3>Seguro y confiable</h3>
-            <p>Información verificada con disclaimers legales. La IA orienta, los profesionales acompañan.</p>
+        <div className="landing-container">
+          <p className="eyebrow">¿POR QUÉ VARIUS?</p>
+          <h2>Un ecosistema jurídico integral</h2>
+          <div className="benefits-grid">
+            <div className="benefit-card">
+              <Bot size={28} />
+              <h3>Asistente IA jurídico</h3>
+              <p>Resuelve dudas legales al instante con inteligencia artificial enfocada en legislación ecuatoriana.</p>
+            </div>
+            <div className="benefit-card">
+              <Users size={28} />
+              <h3>Abogados verificados</h3>
+              <p>Conecta con profesionales reales filtrados por especialidad, ciudad y calificación.</p>
+            </div>
+            <div className="benefit-card">
+              <Scale size={28} />
+              <h3>Biblioteca legal</h3>
+              <p>Constitución, COIP, Código del Trabajo, guías prácticas y modelos de documentos.</p>
+            </div>
+            <div className="benefit-card">
+              <Shield size={28} />
+              <h3>Seguro y confiable</h3>
+              <p>Información verificada con disclaimers legales. La IA orienta, los profesionales acompañan.</p>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Lawyers preview */}
+      {/* Lawyers preview (White background section + centered container) */}
       <section className="landing-section">
-        <div className="section-title">
-          <div>
-            <p className="eyebrow">PROFESIONALES VERIFICADOS</p>
-            <h2>Expertos que te acompañan</h2>
+        <div className="landing-container">
+          <div className="section-title">
+            <div>
+              <p className="eyebrow">PROFESIONALES VERIFICADOS</p>
+              <h2>Expertos que te acompañan</h2>
+            </div>
+            <Link href="/abogados" className="link">
+              Ver todos <ArrowRight size={16} />
+            </Link>
           </div>
-          <Link href="/abogados" className="link">
-            Ver todos <ArrowRight size={16} />
-          </Link>
-        </div>
-        <div className="landing-lawyers">
-          {lawyers.map((l) => (
-            <LawyerCard lawyer={l} key={l.name} />
-          ))}
-        </div>
-        <div style={{ textAlign: 'center', marginTop: '24px' }}>
-          <button className="landing-btn primary compact" onClick={() => setAuthOpen(true)}>
-            Acceder para contactar <ArrowRight size={16} />
-          </button>
+          <div className="landing-lawyers">
+            {lawyers.map((l) => (
+              <LawyerCard lawyer={l} key={l.name} />
+            ))}
+          </div>
+          <div style={{ textAlign: 'center', marginTop: '28px' }}>
+            <button className="landing-btn primary compact" onClick={() => setAuthOpen(true)}>
+              <span>Acceder para contactar</span> <ArrowRight size={16} />
+            </button>
+          </div>
         </div>
       </section>
 
-      {/* Library preview */}
+      {/* Library preview (Light gray background section + centered container) */}
       <section className="landing-section landing-library-preview">
-        <div className="section-title">
-          <div>
-            <p className="eyebrow">BIBLIOTECA JURÍDICA</p>
-            <h2>Recursos legales de Ecuador</h2>
+        <div className="landing-container">
+          <div className="section-title">
+            <div>
+              <p className="eyebrow">BIBLIOTECA JURÍDICA</p>
+              <h2>Recursos legales de Ecuador</h2>
+            </div>
+          </div>
+          <div className="library-preview-grid">
+            {[
+              { title: 'Constitución de la República', type: 'LEY', desc: 'Norma suprema vigente desde 2008.' },
+              { title: 'Código del Trabajo', type: 'CÓDIGO', desc: 'Relaciones entre empleadores y trabajadores.' },
+              { title: 'COIP', type: 'CÓDIGO', desc: 'Código Orgánico Integral Penal.' },
+              { title: 'Guía: Contrato de arriendo', type: 'GUÍA', desc: 'Paso a paso para un contrato válido.' },
+            ].map((r, i) => (
+              <div className="library-preview-card" key={i}>
+                <span className="resource-type">{r.type}</span>
+                <h3>{r.title}</h3>
+                <p>{r.desc}</p>
+              </div>
+            ))}
+          </div>
+          <div style={{ textAlign: 'center', marginTop: '24px' }}>
+            <Link href="/biblioteca" className="landing-btn secondary-dark compact">
+              <span>Explorar biblioteca completa</span> <ArrowRight size={16} />
+            </Link>
           </div>
         </div>
-        <div className="library-preview-grid">
-          {[
-            { title: 'Constitución de la República', type: 'LEY', desc: 'Norma suprema vigente desde 2008.' },
-            { title: 'Código del Trabajo', type: 'CÓDIGO', desc: 'Relaciones entre empleadores y trabajadores.' },
-            { title: 'COIP', type: 'CÓDIGO', desc: 'Código Orgánico Integral Penal.' },
-            { title: 'Guía: Contrato de arriendo', type: 'GUÍA', desc: 'Paso a paso para un contrato válido.' },
-          ].map((r, i) => (
-            <div className="library-preview-card" key={i}>
-              <span className="resource-type">{r.type}</span>
-              <h3>{r.title}</h3>
-              <p>{r.desc}</p>
-            </div>
-          ))}
-        </div>
-        <div style={{ textAlign: 'center', marginTop: '20px' }}>
-          <Link href="/biblioteca" className="landing-btn secondary">
-            Explorar biblioteca completa <ArrowRight size={16} />
-          </Link>
-        </div>
       </section>
 
-      {/* FAQ */}
+      {/* FAQ (White background section + centered container) */}
       <section className="landing-section">
-        <p className="eyebrow">PREGUNTAS FRECUENTES</p>
-        <h2>¿Tienes dudas sobre VARIUS?</h2>
-        <div style={{ maxWidth: '700px', margin: '24px auto 0' }}>
-          {faqs.map((faq, i) => (
-            <div className={`faq-item ${faqOpen === i ? 'open' : ''}`} key={i}>
-              <button className="faq-question" onClick={() => setFaqOpen(faqOpen === i ? null : i)}>
-                {faq.q}
-                <ChevronDown size={18} />
-              </button>
-              {faqOpen === i && (
-                <div className="faq-answer">
-                  <p style={{ margin: 0 }}>{faq.a}</p>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-        <div style={{ textAlign: 'center', marginTop: '30px' }}>
-          <Link href="/preguntas-frecuentes" className="link">
-            Ver todas las preguntas <ArrowRight size={16} />
-          </Link>
+        <div className="landing-container">
+          <p className="eyebrow">PREGUNTAS FRECUENTES</p>
+          <h2>¿Tienes dudas sobre VARIUS?</h2>
+          <div style={{ maxWidth: '720px', margin: '28px auto 0' }}>
+            {faqs.map((faq, i) => (
+              <div className={`faq-item ${faqOpen === i ? 'open' : ''}`} key={i}>
+                <button className="faq-question" onClick={() => setFaqOpen(faqOpen === i ? null : i)}>
+                  {faq.q}
+                  <ChevronDown size={18} />
+                </button>
+                {faqOpen === i && (
+                  <div className="faq-answer">
+                    <p style={{ margin: 0 }}>{faq.a}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          <div style={{ textAlign: 'center', marginTop: '32px' }}>
+            <Link href="/preguntas-frecuentes" className="link" style={{ justifyContent: 'center' }}>
+              Ver todas las preguntas <ArrowRight size={16} />
+            </Link>
+          </div>
         </div>
       </section>
-
-
 
       {authOpen && <AuthDialog user={null} close={() => setAuthOpen(false)} />}
     </>
