@@ -1,38 +1,413 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { GoogleAuthProvider, User, createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, updateProfile } from 'firebase/auth';
-import { ArrowRight, Bell, Bot, CalendarDays, ChevronDown, Compass, Heart, Home as HomeIcon, MapPin, Menu, MessageCircle, MoreHorizontal, Plus, Scale, Search, Send, Sparkles, Star, Users, X } from 'lucide-react';
-import { auth, isFirebaseConfigured } from '../lib/firebase/client';
-import { UserRole, createProfile } from '../lib/firebase/profile';
+import Link from 'next/link';
+import { useState } from 'react';
+import {
+  ArrowRight,
+  Bot,
+  CalendarDays,
+  CheckCircle,
+  ChevronDown,
+  ExternalLink,
+  MoreHorizontal,
+  Scale,
+  Search,
+  Shield,
+  Sparkles,
+  Users,
+} from 'lucide-react';
+import { useAuth } from '@/lib/auth-context';
+import LawyerCard from '@/app/components/LawyerCard';
+import AuthDialog from '@/app/components/AuthDialog';
+import type { LawyerData } from '@/app/components/LawyerCard';
 
-const lawyers = [
+/* ── Mock data ── */
+const lawyers: LawyerData[] = [
   { name: 'Valentina Mena', role: 'Derecho de familia', city: 'Quito, Ecuador', rating: '4.9', reviews: '124 reseñas', price: '$45 / consulta', color: '#d8ad96', initials: 'VM' },
   { name: 'Santiago Rivas', role: 'Derecho laboral', city: 'Guayaquil, Ecuador', rating: '4.8', reviews: '98 reseñas', price: '$38 / consulta', color: '#7e907d', initials: 'SR' },
   { name: 'Elena Paredes', role: 'Propiedad intelectual', city: 'Atención virtual', rating: '5.0', reviews: '76 reseñas', price: '$55 / consulta', color: '#9f7f8c', initials: 'EP' },
 ];
-const actions = [{ icon: Bot, title: 'Consultar IA', text: 'Aclara una duda legal', tint: '#fae7ef' }, { icon: Search, title: 'Buscar abogado', text: 'Encuentra al ideal para ti', tint: '#f4edda' }, { icon: CalendarDays, title: 'Agendar asesoría', text: 'Reserva en pocos minutos', tint: '#e8f0e8' }];
+
+const actions = [
+  { icon: Bot, title: 'Consultar IA', text: 'Aclara una duda legal', tint: '#fae7ef', href: '/asistente' },
+  { icon: Search, title: 'Buscar abogado', text: 'Encuentra al ideal para ti', tint: '#f4edda', href: '/abogados' },
+  { icon: CalendarDays, title: 'Agendar asesoría', text: 'Reserva en pocos minutos', tint: '#e8f0e8', href: '/abogados' },
+];
+
+/* ── Helpers ── */
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Buenos días';
+  if (hour < 18) return 'Buenas tardes';
+  return 'Buenas noches';
+}
+
+function getFormattedDate(): string {
+  return new Date()
+    .toLocaleDateString('es-EC', { weekday: 'long', day: 'numeric', month: 'long' })
+    .replace(/^\w/, (c) => c.toUpperCase());
+}
+
+/* ══════════════════════════════════════════════════
+   MAIN PAGE — switches between Landing & Dashboard
+   ══════════════════════════════════════════════════ */
 export default function HomePage() {
-  const [view, setView] = useState<'home'|'lawyers'|'ai'>('home'); const [menu, setMenu] = useState(false); const [messages, setMessages] = useState([{ from:'ai', text:'Hola. ¿En qué asunto legal puedo orientarte hoy?' }]); const [draft, setDraft] = useState(''); const [isSending, setIsSending] = useState(false); const [user, setUser] = useState<User | null>(null); const [authOpen, setAuthOpen] = useState(false);
-  useEffect(() => { if (!auth) return; return onAuthStateChanged(auth, setUser); }, []);
-  const send = async () => { const question = draft.trim(); if (!question || isSending) return; const next = [...messages, { from:'user', text:question }]; setMessages(next); setDraft(''); setIsSending(true); try { const response = await fetch('/api/ai', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({messages:next.map(message=>({role:message.from==='ai'?'assistant':'user',content:message.text}))}) }); const data = await response.json(); setMessages([...next,{from:'ai',text:data.message || data.error || 'Ocurrió un error inesperado.'}]); } catch { setMessages([...next,{from:'ai',text:'No se pudo conectar con el asistente. Revisa tu conexión e inténtalo de nuevo.'}]); } finally { setIsSending(false); } };
-  return <main>
-    <header><button className="brand" onClick={()=>setView('home')}><span>V</span> VARIUS</button><div className="desktop-nav"><button onClick={()=>setView('lawyers')}>Abogados</button><button>Aprender</button><button>Comunidad</button></div><div className="header-actions"><button className="search-btn"><Search size={18}/><span>Buscar</span><kbd>⌘ K</kbd></button><button className="icon-btn"><Bell size={19}/><i/></button><button className="avatar small" onClick={()=>setAuthOpen(true)} title={user ? user.email ?? 'Mi perfil' : 'Iniciar sesión'}>{user?.displayName?.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase() || 'IN'}</button><button className="mobile-menu" onClick={()=>setMenu(!menu)}>{menu?<X/>:<Menu/>}</button></div></header>
-    {menu && <nav className="mobile-nav"><button onClick={()=>setView('lawyers')}>Abogados</button><button>Aprender</button><button>Comunidad</button></nav>}
-    {view === 'home' && <Home onAction={setView}/>} {view === 'lawyers' && <Marketplace onBack={()=>setView('home')}/>} {view === 'ai' && <Assistant messages={messages} draft={draft} setDraft={setDraft} send={send} isSending={isSending} onBack={()=>setView('home')}/>} 
-    <nav className="bottom-nav"><button className={view==='home'?'active':''} onClick={()=>setView('home')}><HomeIcon/><span>Inicio</span></button><button className={view==='lawyers'?'active':''} onClick={()=>setView('lawyers')}><Compass/><span>Explorar</span></button><button className="create"><Plus/></button><button><MessageCircle/><span>Mensajes</span></button><button onClick={()=>setAuthOpen(true)}><Users/><span>Perfil</span></button></nav>
-    {authOpen && <AuthDialog user={user} close={()=>setAuthOpen(false)}/>} 
-  </main>;
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div style={{ display: 'grid', placeItems: 'center', minHeight: '60vh' }}>
+        <p style={{ color: '#999' }}>Cargando…</p>
+      </div>
+    );
+  }
+
+  if (!user) return <LandingPage />;
+  return <Dashboard />;
 }
-function AuthDialog({ user, close }: {user: User | null; close: () => void}) {
-  const [mode, setMode] = useState<'login'|'register'>('login'); const [name, setName] = useState(''); const [email, setEmail] = useState(''); const [password, setPassword] = useState(''); const [role, setRole] = useState<UserRole>('citizen'); const [error, setError] = useState(''); const [busy, setBusy] = useState(false);
-  const ensureProfile = async (activeUser: User) => createProfile({uid:activeUser.uid, name:activeUser.displayName || name || 'Usuario VARIUS', email:activeUser.email || email, photoURL:activeUser.photoURL, role});
-  const google = async () => { if (!auth) return setError('Firebase no está disponible.'); setBusy(true); setError(''); try { const result = await signInWithPopup(auth, new GoogleAuthProvider()); await ensureProfile(result.user); close(); } catch { setError('No se pudo iniciar sesión con Google. Verifica que el proveedor esté habilitado en Firebase.'); } finally { setBusy(false); } };
-  const submit = async (event: React.FormEvent) => { event.preventDefault(); if (!auth) return setError('Firebase no está disponible.'); setBusy(true); setError(''); try { if (mode === 'register') { const result = await createUserWithEmailAndPassword(auth, email, password); await updateProfile(result.user, { displayName:name }); await ensureProfile(result.user); } else { await signInWithEmailAndPassword(auth, email, password); } close(); } catch (caught) { const code = (caught as {code?:string}).code; setError(code === 'auth/email-already-in-use' ? 'Este correo ya está registrado.' : code === 'auth/weak-password' ? 'Usa al menos 6 caracteres en la contraseña.' : 'No fue posible autenticarte. Revisa tu correo y contraseña.'); } finally { setBusy(false); } };
-  if (user) return <div className="auth-overlay" role="dialog" aria-modal="true"><section className="auth-modal"><button className="close" onClick={close}><X size={19}/></button><span className="auth-mark">V</span><h2>Tu cuenta</h2><p className="auth-copy">Has iniciado sesión como <b>{user.email}</b>.</p><button className="primary" onClick={async()=>{if(auth) await auth.signOut();close();}}>Cerrar sesión</button></section></div>;
-  return <div className="auth-overlay" role="dialog" aria-modal="true"><section className="auth-modal"><button className="close" onClick={close}><X size={19}/></button><span className="auth-mark">V</span><h2>{mode === 'login' ? 'Bienvenido a VARIUS' : 'Crea tu cuenta'}</h2><p className="auth-copy">{mode === 'login' ? 'Ingresa para continuar tu camino jurídico.' : 'Elige cómo quieres vivir VARIUS.'}</p>{!isFirebaseConfigured && <p className="auth-error">Firebase no está configurado en este entorno.</p>}<button className="google" onClick={google} disabled={busy || !isFirebaseConfigured}>Continuar con Google</button><div className="or">o con tu correo</div><form onSubmit={submit}>{mode === 'register' && <><input required placeholder="Nombre completo" value={name} onChange={e=>setName(e.target.value)}/><select value={role} onChange={e=>setRole(e.target.value as UserRole)}><option value="citizen">Ciudadano</option><option value="student">Estudiante</option><option value="lawyer">Abogado</option></select></>}<input required type="email" placeholder="Correo electrónico" value={email} onChange={e=>setEmail(e.target.value)}/><input required minLength={6} type="password" placeholder="Contraseña" value={password} onChange={e=>setPassword(e.target.value)}/>{error && <p className="auth-error">{error}</p>}<button className="primary" disabled={busy || !isFirebaseConfigured}>{busy ? 'Procesando…' : mode === 'login' ? 'Iniciar sesión' : 'Crear cuenta'}</button></form><button className="switch" onClick={()=>setMode(mode==='login'?'register':'login')}>{mode==='login' ? '¿No tienes cuenta? Regístrate' : '¿Ya tienes cuenta? Inicia sesión'}</button></section></div>;
+
+/* ══════════════════════════════════════════════════
+   LANDING PAGE — shown when NOT logged in
+   ══════════════════════════════════════════════════ */
+function LandingPage() {
+  const [authOpen, setAuthOpen] = useState(false);
+  const [faqOpen, setFaqOpen] = useState<number | null>(null);
+
+  const faqs = [
+    { q: '¿VARIUS reemplaza a un abogado?', a: 'No. VARIUS ofrece orientación educativa general. Para casos específicos, te conectamos con profesionales verificados.' },
+    { q: '¿Qué tipo de consultas puedo hacer a la IA?', a: 'Puedes hacer consultas sobre derecho laboral, civil, penal, familiar y constitucional de Ecuador. La IA te orienta de forma general.' },
+    { q: '¿Es gratis?', a: 'Sí. El acceso básico a la plataforma, la IA orientativa y la biblioteca jurídica son gratuitos en el MVP.' },
+  ];
+
+  return (
+    <>
+      {/* Hero with background image */}
+      <section className="landing-hero" style={{ backgroundImage: 'url(/hero.png)' }}>
+        <div className="landing-hero-content">
+          <h1>
+            Tu Derecho,<br />más <span>cerca</span>
+          </h1>
+          <p className="lead">
+            Conectamos personas, estudiantes y profesionales en un ecosistema jurídico
+            inteligente. Orientación legal con IA, abogados verificados y recursos de la
+            legislación ecuatoriana.
+          </p>
+          <div className="landing-ctas">
+            <button className="landing-btn primary compact" onClick={() => setAuthOpen(true)}>
+              Comenzar gratis <ArrowRight size={16} />
+            </button>
+            <Link href="/biblioteca" className="landing-btn secondary compact">
+              Explorar biblioteca
+            </Link>
+          </div>
+          <p className="landing-trust">
+            <CheckCircle size={14} /> Orientación basada en legislación ecuatoriana
+          </p>
+        </div>
+        <div className="landing-hero-visual">
+          <div className="landing-chat-preview">
+            <div className="landing-chat-header">
+              <div className="ai-icon"><Bot size={17} /></div>
+              <div>
+                <b>Asistente jurídico</b>
+                <span><i />En línea</span>
+              </div>
+            </div>
+            <div className="landing-chat-msg ai">
+              <p>Hola. ¿En qué asunto legal puedo orientarte hoy?</p>
+            </div>
+            <div className="landing-chat-msg user">
+              <p>Me despidieron sin justificación, ¿qué derechos tengo?</p>
+            </div>
+            <div className="landing-chat-msg ai">
+              <p>Según el Código del Trabajo de Ecuador, tienes derecho a indemnización por despido intempestivo…</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* How it works */}
+      <section className="landing-section">
+        <p className="eyebrow">¿CÓMO FUNCIONA?</p>
+        <h2>Tres pasos para acceder al Derecho</h2>
+        <div className="landing-steps">
+          <div className="landing-step">
+            <div className="step-number">1</div>
+            <h3>Elige tu perfil</h3>
+            <p>Ciudadano, estudiante o abogado. Cada uno tiene una experiencia adaptada.</p>
+          </div>
+          <div className="landing-step">
+            <div className="step-number">2</div>
+            <h3>Identifica tu necesidad</h3>
+            <p>Consulta la IA, busca un abogado o explora recursos legales de Ecuador.</p>
+          </div>
+          <div className="landing-step">
+            <div className="step-number">3</div>
+            <h3>Conecta con la solución</h3>
+            <p>Te orientamos hacia el profesional, recurso o herramienta adecuada.</p>
+          </div>
+        </div>
+      </section>
+
+      {/* Benefits */}
+      <section className="landing-section landing-benefits">
+        <p className="eyebrow">¿POR QUÉ VARIUS?</p>
+        <h2>Un ecosistema jurídico integral</h2>
+        <div className="benefits-grid">
+          <div className="benefit-card">
+            <Bot size={28} />
+            <h3>Asistente IA jurídico</h3>
+            <p>Resuelve dudas legales al instante con inteligencia artificial enfocada en legislación ecuatoriana.</p>
+          </div>
+          <div className="benefit-card">
+            <Users size={28} />
+            <h3>Abogados verificados</h3>
+            <p>Conecta con profesionales reales filtrados por especialidad, ciudad y calificación.</p>
+          </div>
+          <div className="benefit-card">
+            <Scale size={28} />
+            <h3>Biblioteca legal</h3>
+            <p>Constitución, COIP, Código del Trabajo, guías prácticas y modelos de documentos.</p>
+          </div>
+          <div className="benefit-card">
+            <Shield size={28} />
+            <h3>Seguro y confiable</h3>
+            <p>Información verificada con disclaimers legales. La IA orienta, los profesionales acompañan.</p>
+          </div>
+        </div>
+      </section>
+
+      {/* Lawyers preview */}
+      <section className="landing-section">
+        <div className="section-title">
+          <div>
+            <p className="eyebrow">PROFESIONALES VERIFICADOS</p>
+            <h2>Expertos que te acompañan</h2>
+          </div>
+          <Link href="/abogados" className="link">
+            Ver todos <ArrowRight size={16} />
+          </Link>
+        </div>
+        <div className="landing-lawyers">
+          {lawyers.map((l) => (
+            <LawyerCard lawyer={l} key={l.name} />
+          ))}
+        </div>
+        <div style={{ textAlign: 'center', marginTop: '24px' }}>
+          <button className="landing-btn primary compact" onClick={() => setAuthOpen(true)}>
+            Acceder para contactar <ArrowRight size={16} />
+          </button>
+        </div>
+      </section>
+
+      {/* Library preview */}
+      <section className="landing-section landing-library-preview">
+        <div className="section-title">
+          <div>
+            <p className="eyebrow">BIBLIOTECA JURÍDICA</p>
+            <h2>Recursos legales de Ecuador</h2>
+          </div>
+        </div>
+        <div className="library-preview-grid">
+          {[
+            { title: 'Constitución de la República', type: 'LEY', desc: 'Norma suprema vigente desde 2008.' },
+            { title: 'Código del Trabajo', type: 'CÓDIGO', desc: 'Relaciones entre empleadores y trabajadores.' },
+            { title: 'COIP', type: 'CÓDIGO', desc: 'Código Orgánico Integral Penal.' },
+            { title: 'Guía: Contrato de arriendo', type: 'GUÍA', desc: 'Paso a paso para un contrato válido.' },
+          ].map((r, i) => (
+            <div className="library-preview-card" key={i}>
+              <span className="resource-type">{r.type}</span>
+              <h3>{r.title}</h3>
+              <p>{r.desc}</p>
+            </div>
+          ))}
+        </div>
+        <div style={{ textAlign: 'center', marginTop: '20px' }}>
+          <Link href="/biblioteca" className="landing-btn secondary">
+            Explorar biblioteca completa <ArrowRight size={16} />
+          </Link>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="landing-section">
+        <p className="eyebrow">PREGUNTAS FRECUENTES</p>
+        <h2>¿Tienes dudas sobre VARIUS?</h2>
+        <div style={{ maxWidth: '700px', margin: '24px auto 0' }}>
+          {faqs.map((faq, i) => (
+            <div className={`faq-item ${faqOpen === i ? 'open' : ''}`} key={i}>
+              <button className="faq-question" onClick={() => setFaqOpen(faqOpen === i ? null : i)}>
+                {faq.q}
+                <ChevronDown size={18} />
+              </button>
+              {faqOpen === i && (
+                <div className="faq-answer">
+                  <p style={{ margin: 0 }}>{faq.a}</p>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+        <div style={{ textAlign: 'center', marginTop: '30px' }}>
+          <Link href="/preguntas-frecuentes" className="link">
+            Ver todas las preguntas <ArrowRight size={16} />
+          </Link>
+        </div>
+      </section>
+
+
+
+      {authOpen && <AuthDialog user={null} close={() => setAuthOpen(false)} />}
+    </>
+  );
 }
-function Home({ onAction }: {onAction:(v:'lawyers'|'ai')=>void}) { return <><section className="hero"><div><p className="eyebrow">MIÉRCOLES, 6 DE AGOSTO</p><h1>Buenos días, Sofía <span>✦</span></h1><p className="lead">Tu espacio para entender, aprender y avanzar con el Derecho.</p></div><div className="progress-card"><div className="progress-top"><span>Tu progreso</span><strong>68%</strong></div><div className="progress-bar"><i/></div><p>Vas muy bien. Sigue así.</p></div></section><section className="section"><div className="section-title"><div><p className="eyebrow">¿CÓMO PODEMOS AYUDARTE?</p><h2>Tu Derecho, a un clic</h2></div><button className="link">Ver todo <ArrowRight size={16}/></button></div><div className="action-grid">{actions.map((a, i)=>{const Icon=a.icon; return <button className="action-card" key={a.title} onClick={()=>i===0?onAction('ai'):i===1?onAction('lawyers'):undefined}><span style={{background:a.tint}}><Icon size={23}/></span><b>{a.title}</b><small>{a.text}</small><ArrowRight className="card-arrow" size={18}/></button>})}</div></section><section className="two-col"><div className="section"><div className="section-title"><div><p className="eyebrow">RECOMENDADOS PARA TI</p><h2>Expertos que te acompañan</h2></div><button className="link" onClick={()=>onAction('lawyers')}>Ver todos <ArrowRight size={16}/></button></div><div className="lawyer-list">{lawyers.slice(0,2).map(l=><LawyerCard lawyer={l} key={l.name}/>)}</div></div><div className="section continue"><div className="section-title"><div><p className="eyebrow">SIGUE APRENDIENDO</p><h2>Tu ruta de aprendizaje</h2></div><button className="dots"><MoreHorizontal/></button></div><article className="course"><div className="course-visual"><Scale/><span>01</span></div><div><label>CURSO EN PROGRESO</label><h3>Fundamentos del<br/>Derecho laboral</h3><div className="course-foot"><div className="tiny-progress"><i/></div><b>6 de 9 lecciones</b></div></div><ArrowRight size={19}/></article></div></section><section className="news"><div className="section-title"><div><p className="eyebrow">ACTUALIDAD</p><h2>El Derecho, hoy</h2></div><button className="link">Ver noticias <ArrowRight size={16}/></button></div><div className="news-grid"><article><span className="tag">DERECHO LABORAL</span><h3>Nuevos criterios para los contratos de trabajo</h3><p>Una guía clara para comprender qué cambia y cómo te afecta.</p><small>Hace 2 horas · 5 min lectura</small></article><article className="news-accent"><Sparkles/><h3>Aprende con propósito</h3><p>Accede a contenidos creados por profesionales que ejercen el Derecho cada día.</p><button>Explorar biblioteca <ArrowRight size={15}/></button></article></div></section></> }
-function LawyerCard({ lawyer }: {lawyer: typeof lawyers[number]}) { return <article className="lawyer-card"><div className="lawyer-head"><div className="avatar" style={{background:lawyer.color}}>{lawyer.initials}</div><button><Heart size={18}/></button></div><div><h3>{lawyer.name}</h3><p>{lawyer.role}</p><span className="rating"><Star size={14} fill="currentColor"/> {lawyer.rating} <em>({lawyer.reviews})</em></span></div><div className="lawyer-bottom"><span><MapPin size={14}/>{lawyer.city}</span><b>{lawyer.price}</b></div></article> }
-function Marketplace({onBack}:{onBack:()=>void}) { return <section className="marketplace"><button className="back" onClick={onBack}>← Volver al inicio</button><p className="eyebrow">MARKETPLACE JURÍDICO</p><h1>Encuentra a tu abogado ideal</h1><p className="lead">Profesionales verificados, listos para orientarte.</p><div className="filters"><button><Search size={18}/> ¿Qué necesitas resolver?</button><button><MapPin size={18}/> Ciudad <ChevronDown size={15}/></button><button>Especialidad <ChevronDown size={15}/></button><button>Filtros <ChevronDown size={15}/></button></div><p className="results">132 abogados disponibles</p><div className="market-grid">{lawyers.map(l=><LawyerCard lawyer={l} key={l.name}/>)}</div></section> }
-function Assistant({messages,draft,setDraft,send,isSending,onBack}:any) { return <section className="ai-page"><aside><button className="brand"><span>V</span> VARIUS</button><button className="new-chat"><Plus size={18}/> Nueva consulta</button><p>RECIENTES</p><button>Contrato de arriendo</button><button>Despido intempestivo</button><button>Derechos del consumidor</button><footer>La IA orienta. Los profesionales acompañan.</footer></aside><div className="chat"><div className="chat-top"><button className="back mobile-back" onClick={onBack}>←</button><div><b>Asistente jurídico</b><span><i/> En línea</span></div><button className="icon-btn"><MoreHorizontal/></button></div><div className="chat-body">{messages.map((m:any,i:number)=><div className={`message ${m.from}`} key={i}>{m.from==='ai'&&<div className="ai-icon"><Bot size={17}/></div>}<p>{m.text}</p></div>)}{isSending&&<div className="message ai"><div className="ai-icon"><Bot size={17}/></div><p>Analizando tu consulta…</p></div>}<div className="suggestions">{['Quiero revisar un contrato','Tengo un problema laboral','Explica un término legal'].map(x=><button key={x} onClick={()=>setDraft(x)}>{x}</button>)}</div></div><div className="composer"><p>La información es orientativa y no sustituye asesoría profesional.</p><div><textarea disabled={isSending} value={draft} onChange={e=>setDraft(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}}} placeholder="Escribe tu consulta legal..."/><button disabled={isSending} onClick={send}><Send size={18}/></button></div></div></div></section> }
+
+/* ══════════════════════════════════════════════════
+   DASHBOARD — shown when logged in
+   ══════════════════════════════════════════════════ */
+function Dashboard() {
+  const { user } = useAuth();
+  const displayName = user?.displayName?.split(' ')[0] || 'Usuario';
+  const greeting = getGreeting();
+  const formattedDate = getFormattedDate();
+
+  return (
+    <>
+      {/* Hero Section */}
+      <section className="hero">
+        <div>
+          <p className="eyebrow">{formattedDate.toUpperCase()}</p>
+          <h1>
+            {greeting}, {displayName} <span>✦</span>
+          </h1>
+          <p className="lead">
+            Tu espacio para entender, aprender y avanzar con el Derecho.
+          </p>
+        </div>
+        <div className="progress-card">
+          <div className="progress-top">
+            <span>Tu progreso</span>
+            <strong>68%</strong>
+          </div>
+          <div className="progress-bar">
+            <i />
+          </div>
+          <p>Vas muy bien. Sigue así.</p>
+        </div>
+      </section>
+
+      {/* Quick Actions */}
+      <section className="section">
+        <div className="section-title">
+          <div>
+            <p className="eyebrow">¿CÓMO PODEMOS AYUDARTE?</p>
+            <h2>Tu Derecho, a un clic</h2>
+          </div>
+          <Link href="/biblioteca" className="link">
+            Ver todo <ArrowRight size={16} />
+          </Link>
+        </div>
+        <div className="action-grid">
+          {actions.map((a) => {
+            const Icon = a.icon;
+            return (
+              <Link className="action-card" key={a.title} href={a.href} style={{ textDecoration: 'none', color: 'inherit' }}>
+                <span style={{ background: a.tint }}>
+                  <Icon size={23} />
+                </span>
+                <b>{a.title}</b>
+                <small>{a.text}</small>
+                <ArrowRight className="card-arrow" size={18} />
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Two Column: Recommended Lawyers + Learning */}
+      <section className="two-col">
+        <div className="section">
+          <div className="section-title">
+            <div>
+              <p className="eyebrow">RECOMENDADOS PARA TI</p>
+              <h2>Expertos que te acompañan</h2>
+            </div>
+            <Link href="/abogados" className="link">
+              Ver todos <ArrowRight size={16} />
+            </Link>
+          </div>
+          <div className="lawyer-list">
+            {lawyers.slice(0, 2).map((l) => (
+              <LawyerCard lawyer={l} key={l.name} />
+            ))}
+          </div>
+        </div>
+
+        <div className="section continue">
+          <div className="section-title">
+            <div>
+              <p className="eyebrow">SIGUE APRENDIENDO</p>
+              <h2>Tu ruta de aprendizaje</h2>
+            </div>
+            <button className="dots">
+              <MoreHorizontal />
+            </button>
+          </div>
+          <article className="course">
+            <div className="course-visual">
+              <Scale />
+              <span>01</span>
+            </div>
+            <div>
+              <label>CURSO EN PROGRESO</label>
+              <h3>
+                Fundamentos del
+                <br />
+                Derecho laboral
+              </h3>
+              <div className="course-foot">
+                <div className="tiny-progress">
+                  <i />
+                </div>
+                <b>6 de 9 lecciones</b>
+              </div>
+            </div>
+            <ArrowRight size={19} />
+          </article>
+        </div>
+      </section>
+
+      {/* News */}
+      <section className="news">
+        <div className="section-title">
+          <div>
+            <p className="eyebrow">ACTUALIDAD</p>
+            <h2>El Derecho, hoy</h2>
+          </div>
+          <Link href="/biblioteca" className="link">
+            Ver noticias <ArrowRight size={16} />
+          </Link>
+        </div>
+        <div className="news-grid">
+          <article>
+            <span className="tag">DERECHO LABORAL</span>
+            <h3>Nuevos criterios para los contratos de trabajo</h3>
+            <p>Una guía clara para comprender qué cambia y cómo te afecta.</p>
+            <small>Hace 2 horas · 5 min lectura</small>
+          </article>
+          <article className="news-accent">
+            <Sparkles />
+            <h3>Aprende con propósito</h3>
+            <p>
+              Accede a contenidos creados por profesionales que ejercen el Derecho
+              cada día.
+            </p>
+            <Link href="/biblioteca" style={{ color: '#fff', textDecoration: 'none', fontSize: '11px', display: 'flex', gap: '5px', alignItems: 'center' }}>
+              Explorar biblioteca <ArrowRight size={15} />
+            </Link>
+          </article>
+        </div>
+      </section>
+    </>
+  );
+}
