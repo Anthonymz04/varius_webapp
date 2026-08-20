@@ -885,7 +885,7 @@ h2 {
    =================================================================== */
 .auth-overlay {
   position: fixed;
-  z-index: 20;
+  z-index: 100000;
   inset: 0;
   background: #21181a77;
   backdrop-filter: blur(5px);
