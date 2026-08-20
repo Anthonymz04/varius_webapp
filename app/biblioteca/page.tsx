@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { ArrowRight, BookOpen, ExternalLink, FileText, Scale, Search } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import { ExternalLink, Search } from 'lucide-react';
 
 interface Resource {
   title: string;
@@ -60,35 +61,35 @@ const resources: Resource[] = [
     type: 'guia',
     description: 'Paso a paso para elaborar un contrato de arrendamiento válido en Ecuador.',
     category: 'Guías',
-    url: '#',
+    url: 'https://www.lexis.com.ec',
   },
   {
     title: 'Guía: Derechos laborales básicos del trabajador',
     type: 'guia',
     description: 'Lo que todo trabajador en Ecuador debe saber sobre sus derechos fundamentales.',
     category: 'Guías',
-    url: '#',
+    url: 'https://www.lexis.com.ec',
   },
   {
     title: 'Modelo: Demanda de alimentos',
     type: 'modelo',
     description: 'Formato base para una demanda de pensión alimenticia ante juez de familia.',
     category: 'Modelos',
-    url: '#',
+    url: 'https://www.lexis.com.ec',
   },
   {
     title: 'Modelo: Contrato de trabajo a plazo fijo',
     type: 'modelo',
     description: 'Plantilla editable de contrato laboral conforme al Código del Trabajo ecuatoriano.',
     category: 'Modelos',
-    url: '#',
+    url: 'https://www.lexis.com.ec',
   },
   {
     title: 'Glosario jurídico ecuatoriano',
     type: 'glosario',
     description: 'Términos legales comunes explicados en lenguaje sencillo para ciudadanos.',
     category: 'Glosario',
-    url: '#',
+    url: 'https://www.lexis.com.ec',
   },
 ];
 
@@ -101,9 +102,16 @@ const typeLabels: Record<string, string> = {
   glosario: 'GLOSARIO',
 };
 
-export default function BibliotecaPage() {
+function BibliotecaContent() {
+  const searchParams = useSearchParams();
+  const initialQuery = searchParams.get('q') || searchParams.get('category') || '';
+
   const [activeCategory, setActiveCategory] = useState('Todos');
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(initialQuery);
+
+  useEffect(() => {
+    if (initialQuery) setSearch(initialQuery);
+  }, [initialQuery]);
 
   const filtered = resources.filter((r) => {
     const matchCategory = activeCategory === 'Todos' || r.category === activeCategory;
@@ -129,12 +137,13 @@ export default function BibliotecaPage() {
           border: '1px solid var(--line)',
           borderRadius: '10px',
           padding: '11px 13px',
-          maxWidth: '400px',
+          maxWidth: '440px',
+          background: '#fff',
         }}>
           <Search size={18} color="#999" />
           <input
             type="text"
-            placeholder="Buscar recurso..."
+            placeholder="Buscar por palabra clave (ej. laboral, contrato, penal)..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{
@@ -171,13 +180,9 @@ export default function BibliotecaPage() {
             <span className="resource-type">{typeLabels[r.type]}</span>
             <h3>{r.title}</h3>
             <p>{r.description}</p>
-            {r.url !== '#' ? (
-              <a href={r.url} target="_blank" rel="noopener noreferrer">
-                Consultar <ExternalLink size={14} />
-              </a>
-            ) : (
-              <span style={{ fontSize: '12px', color: '#aaa' }}>Próximamente</span>
-            )}
+            <a href={r.url} target="_blank" rel="noopener noreferrer">
+              Consultar recurso <ExternalLink size={14} />
+            </a>
           </article>
         ))}
       </div>
@@ -188,5 +193,13 @@ export default function BibliotecaPage() {
         </p>
       )}
     </section>
+  );
+}
+
+export default function BibliotecaPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: '40px', textAlign: 'center' }}>Cargando biblioteca jurídica…</div>}>
+      <BibliotecaContent />
+    </Suspense>
   );
 }

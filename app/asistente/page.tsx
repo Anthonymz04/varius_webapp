@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { Bot, MoreHorizontal, Plus, Send } from 'lucide-react';
 
 interface Message {
@@ -9,15 +10,25 @@ interface Message {
   text: string;
 }
 
-export default function AsistentePage() {
+function AsistenteChat() {
+  const searchParams = useSearchParams();
+  const initialPrompt = searchParams.get('prompt') || '';
+
   const [messages, setMessages] = useState<Message[]>([
     { from: 'ai', text: 'Hola. ¿En qué asunto legal puedo orientarte hoy? Estoy especializado en legislación ecuatoriana.' },
   ]);
   const [draft, setDraft] = useState('');
   const [isSending, setIsSending] = useState(false);
 
-  const send = async () => {
-    const question = draft.trim();
+  // If URL has a prompt parameter on load, send it automatically
+  useEffect(() => {
+    if (initialPrompt && messages.length === 1) {
+      handleSendPrompt(initialPrompt);
+    }
+  }, [initialPrompt]);
+
+  const handleSendPrompt = async (questionText: string) => {
+    const question = questionText.trim();
     if (!question || isSending) return;
 
     const next: Message[] = [...messages, { from: 'user', text: question }];
@@ -52,10 +63,10 @@ export default function AsistentePage() {
   };
 
   const suggestions = [
-    '¿Cuáles son mis derechos laborales en Ecuador?',
-    'Quiero revisar un contrato de arriendo',
+    '¿Qué indemnización me corresponde por despido intempestivo?',
+    '¿Cómo calcular la pensión de alimentos en Ecuador?',
+    '¿Cuáles son los requisitos de un contrato de arriendo válido?',
     '¿Qué dice el COIP sobre la legítima defensa?',
-    'Explica qué es una acción de protección',
   ];
 
   return (
@@ -76,9 +87,9 @@ export default function AsistentePage() {
           <Plus size={18} /> Nueva consulta
         </button>
         <p>RECIENTES</p>
-        <button>Contrato de arriendo</button>
-        <button>Despido intempestivo</button>
-        <button>Derechos del consumidor</button>
+        <button onClick={() => handleSendPrompt('Revisar contrato de arriendo')}>Contrato de arriendo</button>
+        <button onClick={() => handleSendPrompt('Despido intempestivo derechos')}>Despido intempestivo</button>
+        <button onClick={() => handleSendPrompt('Derecho del consumidor Ecuador')}>Derechos del consumidor</button>
         <footer>La IA orienta. Los profesionales acompañan.</footer>
       </aside>
 
@@ -114,13 +125,13 @@ export default function AsistentePage() {
               <div className="ai-icon">
                 <Bot size={17} />
               </div>
-              <p>Analizando tu consulta…</p>
+              <p>Analizando legislación ecuatoriana…</p>
             </div>
           )}
 
           <div className="suggestions">
             {suggestions.map((x) => (
-              <button key={x} onClick={() => setDraft(x)}>
+              <button key={x} onClick={() => handleSendPrompt(x)} disabled={isSending}>
                 {x}
               </button>
             ))}
@@ -140,17 +151,25 @@ export default function AsistentePage() {
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
-                  send();
+                  handleSendPrompt(draft);
                 }
               }}
-              placeholder="Escribe tu consulta legal..."
+              placeholder="Escribe tu consulta legal sobre Ecuador..."
             />
-            <button disabled={isSending} onClick={send}>
+            <button disabled={isSending} onClick={() => handleSendPrompt(draft)}>
               <Send size={18} />
             </button>
           </div>
         </div>
       </div>
     </section>
+  );
+}
+
+export default function AsistentePage() {
+  return (
+    <Suspense fallback={<div style={{ padding: '40px', textAlign: 'center' }}>Cargando Asistente IA…</div>}>
+      <AsistenteChat />
+    </Suspense>
   );
 }

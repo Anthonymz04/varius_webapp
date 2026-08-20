@@ -3,6 +3,7 @@
 import { useAuth } from '@/lib/auth-context';
 import AuthDialog from '@/app/components/AuthDialog';
 import { useEffect, useState } from 'react';
+import { Bot, Scale, ShieldCheck, Users, ArrowRight } from 'lucide-react';
 
 /**
  * Mobile Splash Screen — shown when a non-authenticated user
@@ -36,28 +37,29 @@ export default function MobileSplash() {
             El puente entre aprender, ejercer<br />y acceder al Derecho.
           </p>
 
-          {/* Features preview */}
+          {/* Features preview with monochromatic SVG icons */}
           <div className="splash-features">
             <div className="splash-feature">
-              <span>⚖️</span>
+              <Bot size={22} className="splash-icon" />
               <p>Orientación jurídica con IA</p>
             </div>
             <div className="splash-feature">
-              <span>👨‍⚖️</span>
-              <p>Conecta con abogados</p>
+              <Users size={22} className="splash-icon" />
+              <p>Conecta con abogados verificados</p>
             </div>
             <div className="splash-feature">
-              <span>📚</span>
+              <Scale size={22} className="splash-icon" />
               <p>Biblioteca legal de Ecuador</p>
             </div>
           </div>
 
-          {/* CTA buttons */}
+          {/* CTA button with centered text */}
           <button
             className="splash-btn primary"
             onClick={() => setAuthOpen(true)}
           >
-            Comenzar ahora
+            <span>Comenzar ahora</span>
+            <ArrowRight size={16} />
           </button>
           <p className="splash-legal">
             Plataforma jurídica LegalTech para Ecuador
