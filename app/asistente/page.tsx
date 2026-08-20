@@ -4,23 +4,72 @@ import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Bot, MoreHorizontal, Plus, Send } from 'lucide-react';
+import { useAuth } from '@/lib/auth-context';
+import {
+  Consultation,
+  fetchConsultations,
+  saveConsultation,
+} from '@/lib/firebase/consultations';
 
 interface Message {
   from: 'ai' | 'user';
   text: string;
 }
 
+const GREETING: Message = {
+  from: 'ai',
+  text: 'Hola. ¿En qué asunto legal puedo orientarte hoy? Estoy especializado en legislación ecuatoriana.',
+};
+
 function AsistenteChat() {
   const searchParams = useSearchParams();
   const initialPrompt = searchParams.get('prompt') || '';
+  const { user } = useAuth();
 
-  const [messages, setMessages] = useState<Message[]>([
-    { from: 'ai', text: 'Hola. ¿En qué asunto legal puedo orientarte hoy? Estoy especializado en legislación ecuatoriana.' },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([GREETING]);
   const [draft, setDraft] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [recent, setRecent] = useState<Consultation[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
 
-  // If URL has a prompt parameter on load, send it automatically
+  useEffect(() => {
+    let active = true;
+    if (!user) {
+      setRecent([]);
+      return;
+    }
+    fetchConsultations(user.uid)
+      .then((list) => {
+        if (active) setRecent(list);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [user?.uid]);
+
+  const persist = async (msgs: Message[]) => {
+    if (!user) return;
+    const firstUserMsg = msgs.find((m) => m.from === 'user');
+    const title = firstUserMsg ? firstUserMsg.text.slice(0, 60) : 'Consulta';
+    try {
+      const id = await saveConsultation(user.uid, title, msgs, activeId);
+      if (!id) return;
+      setActiveId(id);
+      setRecent((prev) => {
+        const updated: Consultation = { id, uid: user.uid, title, messages: msgs, updatedAt: Date.now() };
+        const rest = prev.filter((c) => c.id !== id);
+        return [updated, ...rest].slice(0, 20);
+      });
+    } catch {}
+  };
+
+  const openConsultation = (c: Consultation) => {
+    if (isSending) return;
+    setActiveId(c.id);
+    setMessages(c.messages.length ? c.messages : [GREETING]);
+  };
+
   useEffect(() => {
     if (initialPrompt && messages.length === 1) {
       handleSendPrompt(initialPrompt);
@@ -48,15 +97,19 @@ function AsistenteChat() {
         }),
       });
       const data = await response.json();
-      setMessages([
+      const full: Message[] = [
         ...next,
         { from: 'ai', text: data.message || data.error || 'Ocurrió un error inesperado.' },
-      ]);
+      ];
+      setMessages(full);
+      void persist(full);
     } catch {
-      setMessages([
+      const full: Message[] = [
         ...next,
         { from: 'ai', text: 'No se pudo conectar con el asistente. Revisa tu conexión e inténtalo de nuevo.' },
-      ]);
+      ];
+      setMessages(full);
+      void persist(full);
     } finally {
       setIsSending(false);
     }
@@ -78,18 +131,31 @@ function AsistenteChat() {
         </Link>
         <button
           className="new-chat"
-          onClick={() =>
-            setMessages([
-              { from: 'ai', text: 'Hola. ¿En qué asunto legal puedo orientarte hoy? Estoy especializado en legislación ecuatoriana.' },
-            ])
-          }
+          onClick={() => {
+            setActiveId(null);
+            setMessages([GREETING]);
+          }}
         >
           <Plus size={18} /> Nueva consulta
         </button>
-        <p>RECIENTES</p>
-        <button onClick={() => handleSendPrompt('Revisar contrato de arriendo')}>Contrato de arriendo</button>
-        <button onClick={() => handleSendPrompt('Despido intempestivo derechos')}>Despido intempestivo</button>
-        <button onClick={() => handleSendPrompt('Derecho del consumidor Ecuador')}>Derechos del consumidor</button>
+        <p>MIS CONSULTAS</p>
+        {user ? (
+          recent.length ? (
+            recent.map((c) => (
+              <button
+                key={c.id}
+                onClick={() => openConsultation(c)}
+                className={c.id === activeId ? 'active' : ''}
+              >
+                {c.title}
+              </button>
+            ))
+          ) : (
+            <p className="recent-empty">Tus conversaciones aparecerán aquí.</p>
+          )
+        ) : (
+          <p className="recent-empty">Inicia sesión para guardar tu historial de consultas.</p>
+        )}
         <footer>La IA orienta. Los profesionales acompañan.</footer>
       </aside>
 

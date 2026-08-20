@@ -67,7 +67,8 @@ public/
 - Sin comentarios en el código (petición explícita del usuario).
 - Los modales/overlays usan `.auth-overlay` con `z-index: 100000` — mantener siempre por encima de `.splash-overlay` (z-index 99999). Ver commit `bc5ba31`.
 - Mobile-first: breakpoint principal 700px (splash + `header` oculto debajo).
-- Roles de usuario: `citizen | student | lawyer` (Firestore `usuarios/{uid}.role`).
+- Roles de usuario: `citizen | student | lawyer` (Firestore `users/{uid}.role`).
+- Docs de negocio/marca: `varius_documentacion_optimizada.md` (fuente de verdad funcional; mockups listan 10 pantallas objetivo).
 - Al terminar un cambio: verificar con `npm run build` (incluye tsc) y proporcionar mensaje de commit descriptivo.
 
 ## Git

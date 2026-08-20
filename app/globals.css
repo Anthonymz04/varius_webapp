@@ -726,6 +726,22 @@ h2 {
   background: #f3f1f1;
 }
 
+.ai-page aside > button:not(.brand):not(.new-chat).active {
+  background: #f8e8ef;
+  color: var(--wine);
+  font-weight: 600;
+}
+
+.ai-page aside .recent-empty {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: normal;
+  color: #b5b1b1;
+  text-transform: none;
+  margin: 0 8px;
+  line-height: 1.5;
+}
+
 .ai-page aside footer {
   font-size: 10px;
   color: #aaa;
