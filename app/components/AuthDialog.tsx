@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { getDoc, doc } from 'firebase/firestore';
 import { User } from 'firebase/auth';
 import {
   GoogleAuthProvider,
@@ -9,8 +11,8 @@ import {
   signInWithPopup,
   updateProfile,
 } from 'firebase/auth';
-import { X } from 'lucide-react';
-import { auth, isFirebaseConfigured } from '@/lib/firebase/client';
+import { Bot, Briefcase, GraduationCap, X } from 'lucide-react';
+import { auth, db, isFirebaseConfigured } from '@/lib/firebase/client';
 import { UserRole, createProfile } from '@/lib/firebase/profile';
 
 interface AuthDialogProps {
@@ -18,8 +20,19 @@ interface AuthDialogProps {
   close: () => void;
 }
 
+type Step = 'form' | 'role';
+
+const roleOptions: { value: UserRole; title: string; text: string; Icon: typeof Bot }[] = [
+  { value: 'citizen', title: 'Ciudadano', text: 'Orientación jurídica y conexión con abogados.', Icon: Bot },
+  { value: 'student', title: 'Estudiante', text: 'Tutorías, biblioteca y comunidad académica.', Icon: GraduationCap },
+  { value: 'lawyer', title: 'Abogado', text: 'Ofrece tus servicios y gana visibilidad.', Icon: Briefcase },
+];
+
 export default function AuthDialog({ user, close }: AuthDialogProps) {
+  const router = useRouter();
   const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [step, setStep] = useState<Step>('form');
+  const [pendingUser, setPendingUser] = useState<User | null>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -27,13 +40,13 @@ export default function AuthDialog({ user, close }: AuthDialogProps) {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
-  const ensureProfile = async (activeUser: User) =>
+  const ensureProfile = async (activeUser: User, chosenRole: UserRole) =>
     createProfile({
       uid: activeUser.uid,
       name: activeUser.displayName || name || 'Usuario VARIUS',
       email: activeUser.email || email,
       photoURL: activeUser.photoURL,
-      role,
+      role: chosenRole,
     });
 
   const google = async () => {
@@ -42,12 +55,39 @@ export default function AuthDialog({ user, close }: AuthDialogProps) {
     setError('');
     try {
       const result = await signInWithPopup(auth, new GoogleAuthProvider());
-      await ensureProfile(result.user);
-      close();
+      let hasRole = false;
+      if (db) {
+        try {
+          const snap = await getDoc(doc(db, 'users', result.user.uid));
+          hasRole = snap.exists() && Boolean(snap.data().role);
+        } catch {
+          hasRole = false;
+        }
+      }
+      if (hasRole) {
+        close();
+      } else {
+        setPendingUser(result.user);
+        setStep('role');
+      }
     } catch {
       setError(
         'No se pudo iniciar sesión con Google. Verifica que el proveedor esté habilitado en Firebase.'
       );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const pickRole = async (chosen: UserRole) => {
+    if (!pendingUser) return;
+    setBusy(true);
+    setError('');
+    try {
+      await ensureProfile(pendingUser, chosen);
+      close();
+    } catch {
+      setError('No se pudo guardar tu perfil. Cierra sesión e inténtalo de nuevo.');
     } finally {
       setBusy(false);
     }
@@ -62,7 +102,7 @@ export default function AuthDialog({ user, close }: AuthDialogProps) {
       if (mode === 'register') {
         const result = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(result.user, { displayName: name });
-        await ensureProfile(result.user);
+        await ensureProfile(result.user, role);
       } else {
         await signInWithEmailAndPassword(auth, email, password);
       }
@@ -95,14 +135,54 @@ export default function AuthDialog({ user, close }: AuthDialogProps) {
             Has iniciado sesión como <b>{user.email}</b>.
           </p>
           <button
+            className="secondary-light"
+            onClick={() => {
+              close();
+              router.push('/perfil');
+            }}
+            style={{ marginBottom: 10 }}
+          >
+            Ver y editar mi perfil
+          </button>
+          <button
             className="primary"
             onClick={async () => {
               if (auth) await auth.signOut();
               close();
+              router.push('/');
             }}
           >
             Cerrar sesión
           </button>
+        </section>
+      </div>
+    );
+  }
+
+  // Step 2: choose role after first Google login
+  if (step === 'role') {
+    return (
+      <div className="auth-overlay" role="dialog" aria-modal="true">
+        <section className="auth-modal">
+          <button className="close" onClick={close}>
+            <X size={19} />
+          </button>
+          <span className="auth-mark">V</span>
+          <h2>¿Cómo quieres vivir VARIUS?</h2>
+          <p className="auth-copy">
+            Hola <b>{pendingUser?.displayName || 'nuevo usuario'}</b>. Elige tu perfil para
+            personalizar tu experiencia. Puedes cambiarlo luego en tu perfil.
+          </p>
+          {error && <p className="auth-error">{error}</p>}
+          <div className="role-picker">
+            {roleOptions.map(({ value, title, text, Icon }) => (
+              <button key={value} disabled={busy} onClick={() => pickRole(value)}>
+                <Icon size={22} />
+                <b>{title}</b>
+                <span>{text}</span>
+              </button>
+            ))}
+          </div>
         </section>
       </div>
     );
