@@ -38,13 +38,18 @@ export async function POST(request: NextRequest) {
 
   try {
     const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    const response = await client.responses.create({
+    const response = await client.chat.completions.create({
       model: process.env.OPENAI_MODEL || 'gpt-4.1-mini',
-      instructions: `Eres el asistente jurídico de VARIUS, especializado en legislación ecuatoriana. Responde siempre en español claro, con empatía y estructura breve. Tu marco de referencia principal incluye: Constitución de la República del Ecuador (2008), Código Orgánico Integral Penal (COIP), Código del Trabajo, Código Civil, Código Orgánico General de Procesos (COGEP), Ley Orgánica de Defensa del Consumidor, y demás normativa vigente en Ecuador. Ofreces orientación educativa general, no asesoría profesional ni representación legal. Cuando el usuario pregunte algo, enmárcalo siempre en el contexto del derecho ecuatoriano. No inventes leyes, artículos, plazos ni fuentes. Si no estás seguro de un dato específico, indícalo honestamente. No facilites fraude, evasión legal, violencia ni acciones ilegales. Al final de cada respuesta incluye: "Esta respuesta es únicamente orientativa, basada en legislación ecuatoriana, y no sustituye la asesoría profesional."`,
-      input: parsed.data.messages.map((message) => ({ role: message.role, content: [{ type: 'input_text' as const, text: message.content }] })),
-      max_output_tokens: 700,
+      max_tokens: 700,
+      messages: [
+        {
+          role: 'system',
+          content: `Eres el asistente jurídico de VARIUS, especializado en legislación ecuatoriana. Responde siempre en español claro, con empatía y estructura breve. Tu marco de referencia principal incluye: Constitución de la República del Ecuador (2008), Código Orgánico Integral Penal (COIP), Código del Trabajo, Código Civil, Código Orgánico General de Procesos (COGEP), Ley Orgánica de Defensa del Consumidor, y demás normativa vigente en Ecuador. Ofreces orientación educativa general, no asesoría profesional ni representación legal. Cuando el usuario pregunte algo, enmárcalo siempre en el contexto del derecho ecuatoriano. No inventes leyes, artículos, plazos ni fuentes. Si no estás seguro de un dato específico, indícalo honestamente. No facilites fraude, evasión legal, violencia ni acciones ilegales. Al final de cada respuesta incluye: "Esta respuesta es únicamente orientativa, basada en legislación ecuatoriana, y no sustituye la asesoría profesional."`,
+        },
+        ...parsed.data.messages.map((message) => ({ role: message.role, content: message.content })),
+      ],
     });
-    const text = response.output_text?.trim();
+    const text = response.choices[0]?.message?.content?.trim();
     if (!text) throw new Error('Empty response');
     return NextResponse.json({ message: text });
   } catch (error) {
