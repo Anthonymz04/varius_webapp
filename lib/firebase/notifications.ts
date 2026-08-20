@@ -1,0 +1,127 @@
+'use client';
+
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  limit,
+  onSnapshot,
+  query,
+  updateDoc,
+  where,
+} from 'firebase/firestore';
+import { db } from '@/lib/firebase/client';
+
+const NOTIFICATIONS = 'notifications';
+const HISTORY = 'action_history';
+const MAIL = 'mail';
+
+export type NotificationType = 'asesoria' | 'tutoria' | 'cuenta' | 'perfil' | 'info';
+
+export interface AppNotification {
+  id: string;
+  uid: string;
+  type: NotificationType | string;
+  title: string;
+  body: string;
+  read: boolean;
+  createdAt: number;
+}
+
+export interface HistoryItem {
+  id: string;
+  uid: string;
+  type: NotificationType | string;
+  title: string;
+  createdAt: number;
+}
+
+export async function createNotification(
+  uid: string,
+  type: NotificationType,
+  title: string,
+  body: string
+): Promise<void> {
+  if (!db) return;
+  await addDoc(collection(db, NOTIFICATIONS), { uid, type, title, body, read: false, createdAt: Date.now() });
+}
+
+export async function addHistory(uid: string, type: NotificationType, title: string): Promise<void> {
+  if (!db) return;
+  await addDoc(collection(db, HISTORY), { uid, type, title, createdAt: Date.now() });
+}
+
+export async function fetchHistory(uid: string): Promise<HistoryItem[]> {
+  if (!db) return [];
+  try {
+    const q = query(collection(db, HISTORY), where('uid', '==', uid), limit(50));
+    const snap = await getDocs(q);
+    const list = snap.docs.map((d) => {
+      const data = d.data();
+      return {
+        id: d.id,
+        uid,
+        type: (data.type as string) ?? 'info',
+        title: (data.title as string) ?? '',
+        createdAt: typeof data.createdAt === 'number' ? data.createdAt : Date.now(),
+      };
+    });
+    list.sort((a, b) => b.createdAt - a.createdAt);
+    return list;
+  } catch {
+    return [];
+  }
+}
+
+export function subscribeNotifications(
+  uid: string,
+  onChange: (list: AppNotification[]) => void
+): () => void {
+  if (!db) return () => {};
+  const q = query(collection(db, NOTIFICATIONS), where('uid', '==', uid), limit(20));
+  return onSnapshot(
+    q,
+    (snap) => {
+      const list = snap.docs.map((d) => {
+        const data = d.data();
+        return {
+          id: d.id,
+          uid,
+          type: (data.type as string) ?? 'info',
+          title: (data.title as string) ?? '',
+          body: (data.body as string) ?? '',
+          read: data.read === true,
+          createdAt: typeof data.createdAt === 'number' ? data.createdAt : Date.now(),
+        };
+      });
+      list.sort((a, b) => b.createdAt - a.createdAt);
+      onChange(list);
+    },
+    () => onChange([])
+  );
+}
+
+export async function markNotificationsRead(items: AppNotification[]): Promise<void> {
+  if (!db) return;
+  await Promise.all(
+    items
+      .filter((n) => !n.read)
+      .map((n) => updateDoc(doc(db!, NOTIFICATIONS, n.id), { read: true }).catch(() => {}))
+  );
+}
+
+export async function deleteNotification(id: string): Promise<void> {
+  if (!db) return;
+  await deleteDoc(doc(db, NOTIFICATIONS, id));
+}
+
+export async function queueEmail(to: string[], subject: string, text: string): Promise<void> {
+  if (!db || to.length === 0) return;
+  await addDoc(collection(db, MAIL), {
+    to,
+    message: { subject, text },
+    createdAt: Date.now(),
+  });
+}

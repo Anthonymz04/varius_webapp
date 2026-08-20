@@ -3,6 +3,7 @@
 import { addDoc, collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import { SEED_LAWYERS, SeedLawyer } from '@/lib/firebase/seed-data';
+import { addHistory, createNotification, queueEmail } from '@/lib/firebase/notifications';
 
 const COLLECTION = 'lawyers';
 
@@ -47,7 +48,8 @@ export interface ConsultationRequest {
 export async function createConsultationRequest(
   uid: string,
   userEmail: string,
-  lawyer: Lawyer
+  lawyer: Lawyer,
+  lawyerEmail?: string
 ): Promise<void> {
   if (!db) throw new Error('Firebase no está configurado');
   await addDoc(collection(db, 'lawyer_requests'), {
@@ -55,9 +57,26 @@ export async function createConsultationRequest(
     userEmail,
     lawyerId: lawyer.id,
     lawyerName: lawyer.name,
+    lawyerEmail: lawyerEmail ?? null,
     status: 'pendiente',
     createdAt: Date.now(),
   });
+
+  const fecha = new Date().toLocaleDateString('es-EC', { day: 'numeric', month: 'long', year: 'numeric' });
+  await Promise.all([
+    createNotification(
+      uid,
+      'asesoria',
+      'Solicitud de asesoría enviada',
+      `Tu solicitud con ${lawyer.name} (${lawyer.role}) quedó registrada el ${fecha}. Te contactaremos pronto.`
+    ),
+    addHistory(uid, 'asesoria', `Solicitó asesoría con ${lawyer.name} (${lawyer.role})`),
+    queueEmail(
+      [userEmail, ...(lawyerEmail ? [lawyerEmail] : [])],
+      `VARIUS | Solicitud de asesoría con ${lawyer.name}`,
+      `Hola,\n\nSe ha registrado una solicitud de asesoría jurídica en VARIUS.\n\nAbogado: ${lawyer.name} (${lawyer.role})\nCiudad: ${lawyer.city}\nCliente: ${userEmail}\nPrecio referencial: ${lawyer.price}\nFecha: ${fecha}\n\nEl equipo de VARIUS coordinará el contacto. Este correo es automático.\n\nVARIUS — El puente entre aprender, ejercer y acceder al Derecho.`
+    ),
+  ]);
 }
 
 export async function fetchMyRequests(uid: string): Promise<ConsultationRequest[]> {

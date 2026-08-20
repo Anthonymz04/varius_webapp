@@ -3,9 +3,10 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { Bell, Bot, Menu, Scale, Search, Users, X } from 'lucide-react';
+import { Bot, Menu, Scale, Search, Users, X } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import AuthDialog from './AuthDialog';
+import NotificationBell from './NotificationBell';
 
 const popularSearches = [
   { text: 'Despido intempestivo y laboral', category: 'IA', href: '/asistente?prompt=Despido+intempestivo' },
@@ -202,10 +203,7 @@ export default function Header() {
           {/* Authenticated header: notifications, avatar */}
           {user && (
             <>
-              <button className="icon-btn">
-                <Bell size={19} />
-                <i />
-              </button>
+              <NotificationBell />
               <button
                 className="avatar small"
                 onClick={() => setAuthOpen(true)}
