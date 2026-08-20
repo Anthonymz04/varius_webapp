@@ -8,87 +8,9 @@ import LawyerCard from '@/app/components/LawyerCard';
 import AuthDialog from '@/app/components/AuthDialog';
 import type { LawyerData } from '@/app/components/LawyerCard';
 import { useAuth } from '@/lib/auth-context';
+import { Lawyer, createConsultationRequest, fetchLawyers } from '@/lib/firebase/marketplace';
 
-const fallbackLawyers: (LawyerData & { bio: string; education: string; experience: string })[] = [
-  {
-    name: 'Valentina Mena',
-    role: 'Derecho de familia',
-    city: 'Quito, Ecuador',
-    rating: '4.9',
-    reviews: '124 reseñas',
-    price: '$45 / consulta',
-    color: '#d8ad96',
-    initials: 'VM',
-    bio: 'Especialista en demandas de alimentos, divorcios, custodia de menores y régimen de visitas en Ecuador. Más de 8 años asistiendo familias.',
-    education: 'Universidad Central del Ecuador · Máster en Derecho de Familia',
-    experience: '8+ años de ejercicio profesional',
-  },
-  {
-    name: 'Santiago Rivas',
-    role: 'Derecho laboral',
-    city: 'Guayaquil, Ecuador',
-    rating: '4.8',
-    reviews: '98 reseñas',
-    price: '$38 / consulta',
-    color: '#7e907d',
-    initials: 'SR',
-    bio: 'Abogado laboralista. Asesoría en despidos intempestivos, actas de finiquito, mediación laboral y demandas ante el Ministerio del Trabajo.',
-    education: 'Universidad de Guayaquil · Especialista en Derecho Laboral',
-    experience: '10+ años asesorando trabajadores y empresas',
-  },
-  {
-    name: 'Elena Paredes',
-    role: 'Propiedad intelectual',
-    city: 'Atención virtual',
-    rating: '5.0',
-    reviews: '76 reseñas',
-    price: '$55 / consulta',
-    color: '#9f7f8c',
-    initials: 'EP',
-    bio: 'Registro de marcas en el SENADI, patentes, derechos de autor y protección de startups. Consultas 100% online.',
-    education: 'Universidad San Francisco de Quito · LL.M. IP Law',
-    experience: '7 años en consultoría LegalTech y propiedad intelectual',
-  },
-  {
-    name: 'Carlos Mendoza',
-    role: 'Derecho penal',
-    city: 'Cuenca, Ecuador',
-    rating: '4.7',
-    reviews: '63 reseñas',
-    price: '$50 / consulta',
-    color: '#8b7d9b',
-    initials: 'CM',
-    bio: 'Defensa penal técnica en procesos según el COIP. Medidas cautelares, hábeas corpus y acompañamiento a audiencias.',
-    education: 'Universidad de Cuenca · Máster en Ciencias Penales',
-    experience: '12 años de práctica procesal penal',
-  },
-  {
-    name: 'María Fernández',
-    role: 'Derecho tributario',
-    city: 'Quito, Ecuador',
-    rating: '4.9',
-    reviews: '112 reseñas',
-    price: '$60 / consulta',
-    color: '#d89696',
-    initials: 'MF',
-    bio: 'Planificación fiscal, reclamos administrativos ante el SRI y defensas tributarias en el Tribunal Contencioso.',
-    education: 'Universidad Andina Simón Bolívar · Especialidad en Tributación',
-    experience: '9 años en consultoría fiscal corporativa',
-  },
-  {
-    name: 'Andrés López',
-    role: 'Derecho constitucional',
-    city: 'Guayaquil, Ecuador',
-    rating: '4.6',
-    reviews: '45 reseñas',
-    price: '$42 / consulta',
-    color: '#7d8e90',
-    initials: 'AL',
-    bio: 'Acciones de protección, hábeas data y recursos de inconstitucionalidad ante la Corte Constitucional del Ecuador.',
-    education: 'Universidad Católica de Santiago de Guayaquil',
-    experience: '6 años en litigio constitucional',
-  },
-];
+type LawyerFull = Lawyer;
 
 const specialties = ['Todos', 'Derecho de familia', 'Derecho laboral', 'Propiedad intelectual', 'Derecho penal', 'Derecho tributario', 'Derecho constitucional'];
 const cities = ['Todas', 'Quito, Ecuador', 'Guayaquil, Ecuador', 'Cuenca, Ecuador', 'Atención virtual'];
@@ -98,32 +20,58 @@ function AbogadosContent() {
   const searchParams = useSearchParams();
   const initialSearch = searchParams.get('search') || '';
 
+  const [allLawyers, setAllLawyers] = useState<LawyerFull[]>([]);
+  const [loadingList, setLoadingList] = useState(true);
   const [search, setSearch] = useState(initialSearch);
   const [specialty, setSpecialty] = useState('Todos');
   const [city, setCity] = useState('Todas');
-  const [selectedLawyer, setSelectedLawyer] = useState<typeof fallbackLawyers[0] | null>(null);
+  const [selectedLawyer, setSelectedLawyer] = useState<LawyerFull | null>(null);
   const [authOpen, setAuthOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    fetchLawyers()
+      .then((list) => {
+        if (active) setAllLawyers(list);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (active) setLoadingList(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (initialSearch) setSearch(initialSearch);
   }, [initialSearch]);
 
-  const filtered = fallbackLawyers.filter((l) => {
+  const filtered = allLawyers.filter((l) => {
     const matchSearch = !search || l.name.toLowerCase().includes(search.toLowerCase()) || l.role.toLowerCase().includes(search.toLowerCase());
     const matchSpecialty = specialty === 'Todos' || l.role === specialty;
     const matchCity = city === 'Todas' || l.city === city;
     return matchSearch && matchSpecialty && matchCity;
   });
 
-  const handleBookSession = (lawyer: typeof fallbackLawyers[0]) => {
+  const handleBookSession = async (lawyer: LawyerFull) => {
     if (!user) {
       setAuthOpen(true);
       return;
     }
-    setToastMessage(`Solicitud enviada a ${lawyer.name}. Te contactaremos a ${user.email}.`);
-    setTimeout(() => setToastMessage(null), 5000);
-    setSelectedLawyer(null);
+    setSending(true);
+    try {
+      await createConsultationRequest(user.uid, user.email ?? '', lawyer);
+      setToastMessage(`Solicitud enviada a ${lawyer.name}. Te contactaremos a ${user.email}.`);
+    } catch {
+      setToastMessage('No se pudo enviar la solicitud. Inténtalo de nuevo.');
+    } finally {
+      setSending(false);
+      setSelectedLawyer(null);
+      setTimeout(() => setToastMessage(null), 5000);
+    }
   };
 
   return (
@@ -196,17 +144,17 @@ function AbogadosContent() {
         </select>
       </div>
 
-      <p className="results">{filtered.length} abogados disponibles</p>
+      <p className="results">{loadingList ? 'Cargando abogados…' : `${filtered.length} abogados disponibles`}</p>
 
       <div className="market-grid">
         {filtered.map((l) => (
-          <div key={l.name} onClick={() => setSelectedLawyer(l)} style={{ cursor: 'pointer' }}>
+          <div key={l.id} onClick={() => setSelectedLawyer(l)} style={{ cursor: 'pointer' }}>
             <LawyerCard lawyer={l} />
           </div>
         ))}
       </div>
 
-      {filtered.length === 0 && (
+      {!loadingList && filtered.length === 0 && (
         <p style={{ textAlign: 'center', color: '#999', padding: '40px 0' }}>
           No se encontraron abogados con esos criterios. Prueba ajustando los filtros.
         </p>
@@ -268,9 +216,10 @@ function AbogadosContent() {
               <span className="lawyer-modal-price">{selectedLawyer.price}</span>
               <button
                 className="landing-btn primary compact"
+                disabled={sending}
                 onClick={() => handleBookSession(selectedLawyer)}
               >
-                <span>Solicitar Asesoría</span>
+                <span>{sending ? 'Enviando…' : 'Solicitar Asesoría'}</span>
               </button>
             </div>
           </div>
