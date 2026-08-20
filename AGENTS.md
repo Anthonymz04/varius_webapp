@@ -19,6 +19,7 @@ npm run build    # build de producción
 npm run lint     # eslint de next
 ```
 No hay test suite. No hay comando de typecheck separado (usar `npm run build` que corre tsc).
+Nota: el build puede requerir internet SOLO si next/font descarga fuentes por primera vez; después quedan cacheadas.
 
 ## Variables de entorno
 Archivo `.env.local` (no versionado) con:
@@ -35,36 +36,39 @@ OPENAI_API_KEY=
 ## Estructura
 ```
 app/
-  layout.tsx            # AuthProvider, MobileSplash, Header, Footer, BottomNav
-  page.tsx              # LandingPage (sin auth) ↔ Dashboard (logueado, acciones por rol)
-  globals.css           # TODO el CSS del proyecto (3000+ líneas)
+  layout.tsx            # AuthProvider, MobileSplash, Header, Footer, BottomNav + next/font
+  loading.tsx           # spinner global de transición entre rutas
+  page.tsx              # LandingPage (sin auth) ↔ Dashboard (datos reales según rol)
+  globals.css           # TODO el CSS del proyecto (3400+ líneas)
   asistente/            # Chat IA + historial "Mis consultas" (Firestore)
   abogados/             # Marketplace: abogados de Firestore + solicitud de asesoría
   biblioteca/           # Biblioteca legal
   tutorias/             # Tutorías con reserva de fecha/hora (Firestore)
   comunidad/            # Posts, likes y comentarios reales (Firestore)
   nosotros/             # Nosotros y contacto
-  perfil/               # Perfil + mis solicitudes de asesoría + mis reservas
+  perfil/               # Perfil editable + solicitudes + reservas + historial de acciones
   preguntas-frecuentes/ # FAQ estática
   hooks/useMisSolicitudes.ts  # hook solicitudes+reservas del usuario
   componentes/
+    NotificationBell.tsx # campanita con notificaciones en tiempo real (Firestore)
     MobileSplash.tsx    # Splash mobile (<700px, no logueado), botón abre AuthDialog
-    AuthDialog.tsx      # Modal login/registro (Correo + Google)
-    Header.tsx          # Nav desktop con menú usuario
+    AuthDialog.tsx      # Login/registro; con Google pide rol la primera vez
+    Header.tsx          # Nav desktop con buscador y campanita
     BottomNav.tsx       # Nav inferior mobile
     HeroCarousel.tsx    # Carrusel hero de landing
     LawyerCard.tsx      # Card de abogado
     Footer.tsx
 lib/
-  auth-context.tsx      # useAuth() → { user, role, loading, signOut }
+  auth-context.tsx      # useAuth() → { user, role, loading, signOut, reloadRole }
   firebase/client.ts    # init Firebase / flag isFirebaseConfigured
-  firebase/profile.ts   # users/{uid} (createProfile, UserRole: citizen|student|lawyer)
+  firebase/profile.ts   # users/{uid} (createProfile + updateProfileFields)
   firebase/consultations.ts  # colección consultations (historial chat IA)
-  firebase/marketplace.ts    # colección lawyers + lawyer_requests (solicitudes)
-  firebase/tutorias.ts       # colección tutoria_reservas
+  firebase/marketplace.ts    # lawyers + lawyer_requests (+notificación/historial/correo)
+  firebase/tutorias.ts       # tutoria_reservas (+notificación/historial/correo)
   firebase/comunidad.ts      # community_posts + community_comments (seed incluido)
+  firebase/notifications.ts  # notifications, action_history, mail (cola de correos)
   firebase/seed-data.ts      # datos semilla de abogados, tutorías y posts
-middleware.ts           # proxy (convención deprecada en Next 16, no tocar sin migrar)
+proxy.ts                # headers de seguridad (antes middleware.ts)
 public/sw.js, manifest.webmanifest  # PWA
 ```
 
@@ -98,8 +102,16 @@ public/sw.js, manifest.webmanifest  # PWA
 - `a2847a7` docs: AGENTS.md inicial
 - `f1ccd7b` feat(asistente): historial de consultas en Firestore (collections)
 - feat: marketplace real (Firestore), tutorías con reserva, comunidad con posts/likes/comentarios, dashboard y perfil por rol
+- `3ffa4cb` chore: middleware.ts → proxy.ts (convención nueva de Next 16)
+- feat: notificaciones (campanita en tiempo real) + historial permanente de acciones + cola de correos en `mail`
+- feat: perfil editable (nombre/rol), selección de rol en primer Google login, redirección a inicio al cerrar sesión
+- feat: dashboard con datos reales (contadores de actividad) y ancho centrado como la landing
+- fix(ia): asistente usa chat.completions en vez de la Responses API (400 con la key actual)
+- perf: fuentes migradas de @import CSS a next/font + loading.tsx global
 
 ## Pendiente / próximos pasos
-- Middleware deprecado en Next 16 (aviso del build); migrar a `proxy.ts` con `npx @next/codemod@canary middleware-to-proxy .`
-- Test manual pendiente por el usuario (auth Google requiere dominio autorizado en Firebase Console)
-- Secciones "Perfil profesional abogado" (edición) y progreso de estudiante siguen como stub
+- Test manual pendiente por el usuario
+- **Correos**: plan Spark no envía correos; la cola `mail` queda lista (formato de la extensión Trigger Email). Para activar: migrar a Blaze + instalar extensión "Trigger Email" o Cloud Functions. Decisión del usuario 2026-08-20.
+- **Publicar `firestore.rules`** en Firebase Console (incluye las nuevas colecciones notifications, action_history, mail)
+- Sección "Perfil profesional abogado" (edición de bio/precio) sigue como stub
+- WhatsApp idea futura mencionada por el usuario para constancia de asesorías
