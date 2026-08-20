@@ -14,6 +14,7 @@ interface AuthState {
 
 interface AuthContextValue extends AuthState {
   signOut: () => Promise<void>;
+  reloadRole: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue>({
@@ -21,6 +22,7 @@ const AuthContext = createContext<AuthContextValue>({
   role: null,
   loading: true,
   signOut: async () => {},
+  reloadRole: async () => {},
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -61,8 +63,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const handleReloadRole = async () => {
+    const current = auth?.currentUser;
+    if (!current || !db) return;
+    try {
+      const snap = await getDoc(doc(db, 'users', current.uid));
+      if (snap.exists()) {
+        setState((prev) => ({ ...prev, role: (snap.data().role as UserRole) ?? prev.role }));
+      }
+    } catch {}
+  };
+
   return (
-    <AuthContext.Provider value={{ ...state, signOut: handleSignOut }}>
+    <AuthContext.Provider value={{ ...state, signOut: handleSignOut, reloadRole: handleReloadRole }}>
       {children}
     </AuthContext.Provider>
   );
