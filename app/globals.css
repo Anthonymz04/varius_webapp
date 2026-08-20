@@ -2874,6 +2874,78 @@ h2 {
 }
 
 /* ===================================================================
+   MODAL OVERLAY & CHIPS
+   =================================================================== */
+.dialog-bg {
+  position: fixed;
+  inset: 0;
+  background: #21181a77;
+  backdrop-filter: blur(5px);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  z-index: 100000;
+}
+
+.dialog-bg .lawyer-modal {
+  animation: scaleUp 0.2s ease-out;
+}
+
+.dialog-bg .lawyer-modal .close,
+.dialog-bg .lawyer-modal .close-btn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: #f4f1f2;
+  border: none;
+  border-radius: 8px;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  color: #666;
+}
+
+.dropdown-search,
+.input-field,
+select.select-field {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font: 500 13px var(--font-jakarta);
+  color: var(--ink);
+  background: #fff;
+  outline: none;
+}
+
+.dropdown-search:focus,
+.input-field:focus,
+select.select-field:focus {
+  border-color: var(--wine);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  background: #fff;
+  font: 600 12px var(--font-jakarta);
+  color: #555;
+  cursor: pointer;
+  transition: 0.15s;
+}
+
+.chip:hover {
+  border-color: var(--wine);
+  color: var(--wine);
+}
+
+/* ===================================================================
    SITE FOOTER
    =================================================================== */
 .site-footer {

@@ -1,7 +1,9 @@
 'use client';
 
 import Link from 'next/link';
+import { CalendarDays, FileText, GraduationCap } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
+import { useMisSolicitudes } from '@/app/hooks/useMisSolicitudes';
 
 const roleLabels: Record<string, string> = {
   citizen: 'Ciudadano',
@@ -11,6 +13,7 @@ const roleLabels: Record<string, string> = {
 
 export default function PerfilPage() {
   const { user, role, loading } = useAuth();
+  const { requests, reservas, loading: reqLoading } = useMisSolicitudes(user?.uid);
 
   if (loading) {
     return (
@@ -96,15 +99,49 @@ export default function PerfilPage() {
         </div>
       )}
 
+      {role === 'student' && !reqLoading && reservas.length > 0 && (
+        <div className="profile-section">
+          <h2>Mis tutorías reservadas</h2>
+          {reservas.map((r) => (
+            <div key={r.id} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '10px 0', borderTop: '1px dashed var(--line)' }}>
+              <CalendarDays size={18} style={{ color: 'var(--wine)', marginTop: 2 }} />
+              <div>
+                <b style={{ fontSize: 13 }}>{r.tutoriaTitle}</b>
+                <p style={{ margin: '2px 0 0', fontSize: 12, color: '#888' }}>
+                  {r.fecha} a las {r.hora}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!reqLoading && requests.length > 0 && (
+        <div className="profile-section">
+          <h2>Mis solicitudes de asesoría</h2>
+          {requests.map((r) => (
+            <div key={r.id} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '10px 0', borderTop: '1px dashed var(--line)' }}>
+              <FileText size={18} style={{ color: 'var(--wine)', marginTop: 2 }} />
+              <div>
+                <b style={{ fontSize: 13 }}>Solicitud con {r.lawyerName}</b>
+                <p style={{ margin: '2px 0 0', fontSize: 12, color: '#888' }}>
+                  Pendiente de respuesta · {new Date(r.createdAt).toLocaleDateString('es-EC', { day: 'numeric', month: 'long' })}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {role === 'student' && (
         <div className="profile-section">
           <h2>Tu progreso de aprendizaje</h2>
-          <p className="lead">
-            Aquí podrás ver tus tutorías completadas, recursos consultados y avance en la plataforma.
-          </p>
-          <p style={{ fontSize: '12px', color: '#aaa' }}>
-            El seguimiento de progreso estará disponible próximamente.
-          </p>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+            <GraduationCap size={18} style={{ color: 'var(--wine)', marginTop: 2 }} />
+            <p className="lead" style={{ margin: 0 }}>
+              {reqLoading ? 'Cargando…' : reservas.length > 0 ? `${reservas.length} tutoría(s) reservada(s). ¡Sigue aprendiendo!` : 'Aún no has reservado tutorías. Explora Tutorías para reservar tu primera sesión.'}
+            </p>
+          </div>
         </div>
       )}
     </section>

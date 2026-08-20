@@ -5,10 +5,13 @@ import { useState } from 'react';
 import {
   ArrowRight,
   Bot,
+  BookOpen,
+  Briefcase,
   CalendarDays,
   CheckCircle,
   ChevronDown,
   ExternalLink,
+  GraduationCap,
   MoreHorizontal,
   Scale,
   Search,
@@ -34,6 +37,27 @@ const actions = [
   { icon: Search, title: 'Buscar abogado', text: 'Encuentra al ideal para ti', tint: '#f4edda', href: '/abogados' },
   { icon: CalendarDays, title: 'Agendar asesoría', text: 'Reserva en pocos minutos', tint: '#e8f0e8', href: '/abogados' },
 ];
+
+const actionsByRole: Record<string, typeof actions> = {
+  citizen: actions,
+  student: [
+    { icon: GraduationCap, title: 'Tutorías', text: 'Clases 1:1 con profesionales', tint: '#f4edda', href: '/tutorias' },
+    { icon: BookOpen, title: 'Biblioteca legal', text: 'Guías y recursos de estudio', tint: '#e8f0e8', href: '/biblioteca' },
+    { icon: Users, title: 'Comunidad', text: 'Debate con otros estudiantes', tint: '#fae7ef', href: '/comunidad' },
+    { icon: Bot, title: 'Consultar IA', text: 'Explica conceptos difíciles', tint: '#eef1f6', href: '/asistente' },
+  ],
+  lawyer: [
+    { icon: Briefcase, title: 'Mis solicitudes', text: 'Atiende tus asesorías', tint: '#fae7ef', href: '/perfil' },
+    { icon: Users, title: 'Comunidad', text: 'Comparte tu conocimiento', tint: '#e8f0e8', href: '/comunidad' },
+    { icon: BookOpen, title: 'Biblioteca legal', text: 'Normativa siempre a mano', tint: '#f4edda', href: '/biblioteca' },
+  ],
+};
+
+const roleLead: Record<string, string> = {
+  citizen: 'Tu espacio para entender, aprender y avanzar con el Derecho.',
+  student: 'Fórmate con tutorías, recursos y una comunidad que impulsa tu carrera.',
+  lawyer: 'Gestiona tus asesorías, gana visibilidad y comparte tu conocimiento.',
+};
 
 /* ── Helpers ── */
 function getGreeting(): string {
@@ -233,10 +257,11 @@ function LandingPage() {
    DASHBOARD — shown when logged in
    ══════════════════════════════════════════════════ */
 function Dashboard() {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const displayName = user?.displayName?.split(' ')[0] || 'Usuario';
   const greeting = getGreeting();
   const formattedDate = getFormattedDate();
+  const roleActions = role && actionsByRole[role] ? actionsByRole[role] : actions;
 
   return (
     <>
@@ -247,9 +272,7 @@ function Dashboard() {
           <h1>
             {greeting}, {displayName} <span>✦</span>
           </h1>
-          <p className="lead">
-            Tu espacio para entender, aprender y avanzar con el Derecho.
-          </p>
+          <p className="lead">{roleLead[role ?? 'citizen']}</p>
         </div>
         <div className="progress-card">
           <div className="progress-top">
@@ -275,7 +298,7 @@ function Dashboard() {
           </Link>
         </div>
         <div className="action-grid">
-          {actions.map((a) => {
+          {roleActions.map((a) => {
             const Icon = a.icon;
             return (
               <Link className="action-card" key={a.title} href={a.href} style={{ textDecoration: 'none', color: 'inherit' }}>
