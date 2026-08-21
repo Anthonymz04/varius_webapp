@@ -41,6 +41,23 @@ button {
   cursor: pointer;
 }
 
+/* ----- Skeleton loading ----- */
+.skeleton {
+  background: linear-gradient(90deg, #f0edee 25%, #e6e2e3 50%, #f0edee 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+  display: block;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
 /* ===================================================================
    HEADER
    =================================================================== */
@@ -806,6 +823,7 @@ h2 {
 .chat-body {
   padding: 30px;
   overflow: auto;
+  min-height: 0;
 }
 
 .message {
@@ -813,17 +831,37 @@ h2 {
   gap: 10px;
   max-width: 75%;
   margin-bottom: 20px;
+  align-items: flex-start;
 }
 
-.message p {
-  margin: 0;
+.message .msg-content {
   border-radius: 12px;
   padding: 12px 14px;
   font-size: 13px;
   line-height: 1.55;
+  min-width: 0;
+  overflow-wrap: break-word;
 }
 
-.message.ai p {
+.message .msg-content p {
+  margin: 0 0 8px;
+}
+
+.message .msg-content p:last-child {
+  margin-bottom: 0;
+}
+
+.message .msg-content ul,
+.message .msg-content ol {
+  margin: 6px 0;
+  padding-left: 20px;
+}
+
+.message .msg-content li {
+  margin: 3px 0;
+}
+
+.message.ai .msg-content {
   background: #f7f4f5;
 }
 
@@ -832,8 +870,13 @@ h2 {
   justify-content: flex-end;
 }
 
-.message.user p {
+.message.user .msg-content {
   background: var(--wine);
+  color: #fff;
+}
+
+.message.user .msg-content p,
+.message.user .msg-content li {
   color: #fff;
 }
 
@@ -860,6 +903,38 @@ h2 {
   border-radius: 16px;
   padding: 8px 10px;
   color: #666;
+}
+
+.save-banner {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #fdf1f6;
+  border: 1px solid #f0c9da;
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin: 4px 0 18px;
+  font-size: 12px;
+  color: #8c1044;
+  z-index: 5;
+}
+
+.save-banner button {
+  background: var(--wine);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 8px 12px;
+  white-space: nowrap;
+}
+
+.save-banner button:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 
 .composer {
@@ -1283,6 +1358,15 @@ h2 {
   margin-bottom: 15px;
   padding-bottom: 10px;
   border-bottom: 1px solid var(--line);
+}
+
+.verify-status {
+  background: #fdf1f6;
+  border: 1px solid #f0c9da;
+  color: #8c1044;
+  border-radius: 10px;
+  padding: 14px 16px;
+  font-size: 13px;
 }
 
 .profile-detail {

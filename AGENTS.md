@@ -49,7 +49,7 @@ app/
   perfil/               # Perfil editable + solicitudes + reservas + historial de acciones
   preguntas-frecuentes/ # FAQ estática
   hooks/useMisSolicitudes.ts  # hook solicitudes+reservas del usuario
-  componentes/
+  components/
     NotificationBell.tsx # campanita con notificaciones en tiempo real (Firestore)
     MobileSplash.tsx    # Splash mobile (<700px, no logueado), botón abre AuthDialog
     AuthDialog.tsx      # Login/registro; con Google pide rol la primera vez
@@ -57,6 +57,8 @@ app/
     BottomNav.tsx       # Nav inferior mobile
     HeroCarousel.tsx    # Carrusel hero de landing
     LawyerCard.tsx      # Card de abogado
+    FormattedText.tsx   # Render markdown ligero del chat (negritas, listas, párrafos)
+    Skeleton.tsx        # Placeholder shimmer reutilizable (width/height/radius)
     Footer.tsx
 lib/
   auth-context.tsx      # useAuth() → { user, role, loading, signOut, reloadRole }
@@ -67,6 +69,7 @@ lib/
   firebase/tutorias.ts       # tutoria_reservas (+notificación/historial/correo)
   firebase/comunidad.ts      # community_posts + community_comments (seed incluido)
   firebase/notifications.ts  # notifications, action_history, mail (cola de correos)
+  firebase/verification.ts   # lawyer_verifications (solicitud de verificación de abogado)
   firebase/seed-data.ts      # datos semilla de abogados, tutorías y posts
 proxy.ts                # headers de seguridad (antes middleware.ts)
 public/sw.js, manifest.webmanifest  # PWA
@@ -80,6 +83,7 @@ public/sw.js, manifest.webmanifest  # PWA
 - `tutoria_reservas/{id}` — { uid, tutoriaId, tutoriaTitle, fecha, hora, createdAt }
 - `community_posts/{id}` — { author, authorUid, body, tags, likedBy[], likeCount, commentCount }
 - `community_comments/{id}` — { postId, author, body, createdAt }
+- `lawyer_verifications/{uid}` — { uid, email, fullName, registryNumber, university, yearsExperience, bio, price, status:'pendiente', createdAt }
 - Patrón: ordenar en cliente, nunca where+orderBy juntos (evita índices compuestos).
 
 ## Convenciones y notas
@@ -97,6 +101,9 @@ public/sw.js, manifest.webmanifest  # PWA
 - Push solo con confirmación explícita. Commits pequeños y descriptivos, uno por fix.
 
 ## Cambios recientes (historial de decisiones)
+- fix(chat): scroll con min-height:0 + auto-scroll, banner "Guardar en historial" para conversaciones sin sesión, respuestas con FormattedText (markdown ligero: negritas/listas/párrafos)
+- feat(skeletons): componente Skeleton (shimmer) aplicado a abogados, comunidad, perfil y loading.tsx global
+- feat(verificación): cambiar rol a abogado ya NO es directo — abre modal de verificación → `lawyer_verifications/{uid}` (status 'pendiente'), rol cambia solo con aprobación de admin. Estudiante ahora pide universidad/carrera (users/{uid}.university/.career)
 - `bc5ba31` fix(mobile): modal de login sobre el splash (z-index 20→100000)
 - `6039455` chore: Next.js 15 → 16.3.1
 - `a2847a7` docs: AGENTS.md inicial
@@ -112,7 +119,10 @@ public/sw.js, manifest.webmanifest  # PWA
 ## Pendiente / próximos pasos
 - Test manual pendiente por el usuario
 - **Correos**: plan Spark no envía correos; la cola `mail` queda lista (formato de la extensión Trigger Email). Para activar: migrar a Blaze + instalar extensión "Trigger Email" o Cloud Functions. Decisión del usuario 2026-08-20.
-- **Publicar `firestore.rules`** en Firebase Console (incluye las nuevas colecciones notifications, action_history, mail)
-- Sección "Perfil profesional abogado" (edición de bio/precio) sigue como stub
+- **Publicar `firestore.rules`** en Firebase Console (colecciones notifications, action_history, mail, lawyer_verifications). Es el fix del toast "No se pudo enviar" aunque la solicitud sí se guarde (los writes secundarios de notificación fallan sin reglas). El CLI local no tiene proyecto/credenciales (`firebase.json` no existe); publicar manualmente desde la consola o `firebase deploy --only firestore:rules`.
+- **Panel admin de verificación**: pendiente de construir (app separada `admin.varius.ec` o ruta protegida por custom claim `admin`). El flujo cliente ya queda listo: `lawyer_verifications/{uid}` con status pendiente/aprobada/rechazada. El admin aprobará → escribe `users/{uid}.role='lawyer'` y crea `lawyers/{id}` (perfil marketplace). La seguridad NO depende de que la URL sea secreta sino de la autorización (claim + reglas).
+- **Perfil profesional abogado** (edición de bio/precio) sigue como stub; foto + certificaciones con Firebase Storage en `certifications/{uid}/...` al construirlo.
+- **Avatar ovalado**: reportado por el usuario, pendiente de revisión visual (CSS parece correcto: width==height + border-radius:50%; sospecha: `<img>` con `height:auto` sin `object-fit:cover`).
+- `npm run lint` está ROTO en Next 16 (interpreta "lint" como directorio; no hay config eslint). Usar `npm run build` (incluye tsc) como verificación.
 - WhatsApp idea futura mencionada por el usuario para constancia de asesorías
 - **Decisión storage (2026-08-20)**: imágenes con Firebase Storage (no Cloudinary); se integra al construir el perfil profesional del abogado (foto + certificaciones en `certifications/{uid}/...`, reglas de privacidad por usuario, estado `lawyers/{id}.verified` para_verificación). Foto de perfil Google usa `photoURL` directo (sin subir nada). Assets de marca van en `/public` + `next/image`.

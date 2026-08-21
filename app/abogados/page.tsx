@@ -7,6 +7,7 @@ import { CheckCircle2, MapPin, Search, Star, X, Calendar, Clock, Award } from 'l
 import LawyerCard from '@/app/components/LawyerCard';
 import AuthDialog from '@/app/components/AuthDialog';
 import type { LawyerData } from '@/app/components/LawyerCard';
+import Skeleton from '@/app/components/Skeleton';
 import { useAuth } from '@/lib/auth-context';
 import { Lawyer, createConsultationRequest, fetchLawyers } from '@/lib/firebase/marketplace';
 
@@ -146,13 +147,33 @@ function AbogadosContent() {
 
       <p className="results">{loadingList ? 'Cargando abogados…' : `${filtered.length} abogados disponibles`}</p>
 
-      <div className="market-grid">
-        {filtered.map((l) => (
-          <div key={l.id} onClick={() => setSelectedLawyer(l)} style={{ cursor: 'pointer' }}>
-            <LawyerCard lawyer={l} />
-          </div>
-        ))}
-      </div>
+      {loadingList ? (
+        <div className="market-grid" aria-hidden>
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div className="lawyer-card" key={i} style={{ cursor: 'default' }}>
+              <div className="lawyer-head">
+                <Skeleton width={46} height={46} radius="50%" />
+                <Skeleton width={18} height={18} radius="50%" />
+              </div>
+              <Skeleton width="70%" height={15} style={{ marginBottom: 8 }} />
+              <Skeleton width="45%" height={12} style={{ marginBottom: 10 }} />
+              <Skeleton width="55%" height={11} />
+              <div className="lawyer-bottom" style={{ marginTop: 14 }}>
+                <Skeleton width={90} height={12} />
+                <Skeleton width={52} height={14} />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="market-grid">
+          {filtered.map((l) => (
+            <div key={l.id} onClick={() => setSelectedLawyer(l)} style={{ cursor: 'pointer' }}>
+              <LawyerCard lawyer={l} />
+            </div>
+          ))}
+        </div>
+      )}
 
       {!loadingList && filtered.length === 0 && (
         <p style={{ textAlign: 'center', color: '#999', padding: '40px 0' }}>

@@ -2,12 +2,18 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { CalendarDays, FileText, GraduationCap, History, Pencil } from 'lucide-react';
+import { Award, CalendarDays, FileText, GraduationCap, History, Pencil, X } from 'lucide-react';
 import { updateProfile as updateAuthProfile } from 'firebase/auth';
 import { useAuth } from '@/lib/auth-context';
 import { useMisSolicitudes } from '@/app/hooks/useMisSolicitudes';
-import { UserRole, updateProfileFields } from '@/lib/firebase/profile';
+import { ProfileFields, UserRole, updateProfileFields } from '@/lib/firebase/profile';
 import { HistoryItem, fetchHistory } from '@/lib/firebase/notifications';
+import Skeleton from '@/app/components/Skeleton';
+import {
+  LawyerVerification,
+  fetchLawyerVerification,
+  submitLawyerVerification,
+} from '@/lib/firebase/verification';
 
 const roleLabels: Record<string, string> = {
   citizen: 'Ciudadano',
@@ -24,8 +30,24 @@ export default function PerfilPage() {
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState('');
   const [editRole, setEditRole] = useState<UserRole>('citizen');
+  const [editUniversity, setEditUniversity] = useState('');
+  const [editCareer, setEditCareer] = useState('');
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState('');
+
+  const [verification, setVerification] = useState<LawyerVerification | null>(null);
+  const [verificationLoading, setVerificationLoading] = useState(true);
+  const [verifyOpen, setVerifyOpen] = useState(false);
+  const [verifyForm, setVerifyForm] = useState({
+    registryNumber: '',
+    university: '',
+    yearsExperience: '',
+    bio: '',
+    price: '',
+  });
+  const [verifySaving, setVerifySaving] = useState(false);
+  const [verifyError, setVerifyError] = useState('');
+  const [verifyMsg, setVerifyMsg] = useState('');
 
   useEffect(() => {
     if (!user) {
@@ -47,12 +69,50 @@ export default function PerfilPage() {
     };
   }, [user?.uid]);
 
-  if (loading) {
+  useEffect(() => {
+    if (!user) {
+      setVerification(null);
+      setVerificationLoading(false);
+      return;
+    }
+    let active = true;
+    setVerificationLoading(true);
+    fetchLawyerVerification(user.uid)
+      .then((v) => {
+        if (active) setVerification(v);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (active) setVerificationLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [user?.uid]);
+
+  if (loading || verificationLoading) {
     return (
       <section className="profile-page">
-        <p style={{ textAlign: 'center', color: '#999', padding: '60px 0' }}>
-          Cargando perfil...
-        </p>
+        <Skeleton width={120} height={14} style={{ marginBottom: 28 }} />
+        <div className="profile-header">
+          <Skeleton width={80} height={80} radius="50%" />
+          <div className="profile-info" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <Skeleton width={180} height={20} />
+            <Skeleton width={220} height={12} />
+            <Skeleton width={90} height={22} radius={999} />
+          </div>
+        </div>
+        <div className="profile-section">
+          <Skeleton width={160} height={16} style={{ marginBottom: 14 }} />
+          <Skeleton width="60%" height={12} style={{ marginBottom: 8 }} />
+          <Skeleton width="45%" height={12} style={{ marginBottom: 8 }} />
+          <Skeleton width="70%" height={12} />
+        </div>
+        <div className="profile-section">
+          <Skeleton width={160} height={16} style={{ marginBottom: 14 }} />
+          <Skeleton width="80%" height={12} style={{ marginBottom: 8 }} />
+          <Skeleton width="55%" height={12} />
+        </div>
       </section>
     );
   }
@@ -81,6 +141,8 @@ export default function PerfilPage() {
   const startEditing = () => {
     setEditName(user.displayName || '');
     setEditRole((role ?? 'citizen') as UserRole);
+    setEditUniversity('');
+    setEditCareer('');
     setEditError('');
     setEditing(true);
   };
@@ -89,12 +151,23 @@ export default function PerfilPage() {
     setSaving(true);
     setEditError('');
     try {
-      const fields: { displayName?: string; role?: UserRole } = {};
+      if (editRole === 'lawyer' && role !== 'lawyer') {
+        setEditing(false);
+        setVerifyMsg('');
+        setVerifyError('');
+        setVerifyOpen(true);
+        return;
+      }
+      const fields: ProfileFields = {};
       if (editName.trim() && editName.trim() !== user.displayName) {
         fields.displayName = editName.trim();
         await updateAuthProfile(user, { displayName: editName.trim() });
       }
       if (editRole !== role) fields.role = editRole;
+      if (editRole === 'student') {
+        fields.university = editUniversity.trim();
+        fields.career = editCareer.trim();
+      }
       await updateProfileFields(user.uid, fields);
       await reloadRole();
       setEditing(false);
@@ -104,6 +177,59 @@ export default function PerfilPage() {
       setSaving(false);
     }
   };
+
+  const openVerify = () => {
+    setVerifyMsg('');
+    setVerifyError('');
+    setVerifyForm((prev) => ({
+      ...prev,
+      registryNumber: verification?.registryNumber ?? '',
+      university: verification?.university ?? '',
+      yearsExperience: verification?.yearsExperience ?? '',
+      bio: verification?.bio ?? '',
+      price: verification?.price ?? '',
+    }));
+    setVerifyOpen(true);
+  };
+
+  const submitVerify = async () => {
+    setVerifySaving(true);
+    setVerifyError('');
+    try {
+      await submitLawyerVerification(user.uid, user.email ?? '', {
+        fullName: user.displayName ?? '',
+        registryNumber: verifyForm.registryNumber,
+        university: verifyForm.university,
+        yearsExperience: verifyForm.yearsExperience,
+        bio: verifyForm.bio,
+        price: verifyForm.price,
+      });
+      setVerification({
+        uid: user.uid,
+        fullName: user.displayName ?? '',
+        email: user.email ?? '',
+        registryNumber: verifyForm.registryNumber,
+        university: verifyForm.university,
+        yearsExperience: verifyForm.yearsExperience,
+        bio: verifyForm.bio,
+        price: verifyForm.price,
+        status: 'pendiente',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+      setVerifyMsg('Solicitud enviada. Te notificaremos cuando un administrador la revise.');
+    } catch {
+      setVerifyError('No se pudo enviar la solicitud. Inténtalo de nuevo.');
+    } finally {
+      setVerifySaving(false);
+    }
+  };
+
+  const canSubmitVerification = !verification || verification.status === 'rechazada';
+  const verifyFormValid =
+    verifyForm.registryNumber.trim() &&
+    verifyForm.university.trim() &&
+    verifyForm.yearsExperience.trim();
 
   return (
     <section className="profile-page">
@@ -126,10 +252,7 @@ export default function PerfilPage() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <h2>Información personal</h2>
           {!editing && (
-            <button
-              className="chip"
-              onClick={startEditing}
-            >
+            <button className="chip" onClick={startEditing}>
               <Pencil size={13} /> Editar
             </button>
           )}
@@ -160,6 +283,39 @@ export default function PerfilPage() {
                 <option value="lawyer">Abogado</option>
               </select>
             </label>
+
+            {editRole === 'student' && (
+              <>
+                <label style={{ fontSize: 12, color: '#888', fontWeight: 600 }}>
+                  Universidad
+                  <input
+                    className="input-field"
+                    style={{ marginTop: 4 }}
+                    value={editUniversity}
+                    onChange={(e) => setEditUniversity(e.target.value)}
+                    placeholder="Ej. Universidad Central del Ecuador"
+                  />
+                </label>
+                <label style={{ fontSize: 12, color: '#888', fontWeight: 600 }}>
+                  Carrera
+                  <input
+                    className="input-field"
+                    style={{ marginTop: 4 }}
+                    value={editCareer}
+                    onChange={(e) => setEditCareer(e.target.value)}
+                    placeholder="Ej. Derecho"
+                  />
+                </label>
+              </>
+            )}
+
+            {editRole === 'lawyer' && role !== 'lawyer' && (
+              <p style={{ fontSize: 11, color: '#8c1044', background: '#fdf1f6', borderRadius: 8, padding: '10px 12px', margin: 0 }}>
+                Para registrarte como abogado enviarás una solicitud de verificación con tus datos
+                profesionales. Tu rol actual no cambia hasta que un administrador la apruebe.
+              </p>
+            )}
+
             <p style={{ fontSize: 11, color: '#aaa', margin: 0 }}>
               El correo de tu cuenta no se puede modificar. Cambiar el rol actualiza tu dashboard personalizado.
             </p>
@@ -198,6 +354,37 @@ export default function PerfilPage() {
           </>
         )}
       </div>
+
+      {verification && verification.status !== 'aprobada' && (
+        <div className="profile-section">
+          <h2>Solicitud de verificación de abogado</h2>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '10px 0' }}>
+            <Award size={18} style={{ color: 'var(--wine)', marginTop: 2 }} />
+            <div>
+              <p style={{ margin: 0, fontSize: 13, fontWeight: 600 }}>
+                {verification.status === 'pendiente' && 'Tu solicitud está en revisión.'}
+                {verification.status === 'rechazada' && 'Tu solicitud fue rechazada. Vuelve a enviarla con datos corregidos.'}
+              </p>
+              <p style={{ margin: '4px 0 0', fontSize: 12, color: '#888' }}>
+                Registro: {verification.registryNumber || '—'} · {verification.university || '—'} ·{' '}
+                {verification.yearsExperience || '—'} años de experiencia
+              </p>
+              <p style={{ margin: '4px 0 0', fontSize: 12, color: '#888' }}>
+                {verification.status === 'pendiente'
+                  ? 'Un administrador revisará tu información. Te avisaremos cuando cambie tu estado.'
+                  : verification.status === 'rechazada'
+                    ? 'Corrige tus datos y envía la solicitud nuevamente.'
+                    : ''}
+              </p>
+              {verification.status === 'rechazada' && (
+                <button className="chip" style={{ marginTop: 10 }} onClick={openVerify}>
+                  Reenviar solicitud
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {role === 'lawyer' && (
         <div className="profile-section">
@@ -279,6 +466,106 @@ export default function PerfilPage() {
           ))
         )}
       </div>
+
+      {verifyOpen && (
+        <div className="dialog-bg" onClick={() => setVerifyOpen(false)}>
+          <div className="lawyer-modal" style={{ maxWidth: 480 }} onClick={(e) => e.stopPropagation()}>
+            <button className="close-btn" onClick={() => setVerifyOpen(false)}>
+              <X size={18} />
+            </button>
+            <div className="lawyer-modal-body">
+              <h2 style={{ fontSize: 18, marginBottom: 6 }}>Verificación de abogado</h2>
+              <p style={{ fontSize: 13, color: '#777', marginBottom: 16 }}>
+                Completa tus datos profesionales. Un administrador revisará la solicitud y tu rol
+                cambiará a Abogado cuando sea aprobada.
+              </p>
+
+              {verification?.status === 'pendiente' && (
+                <div className="verify-status">
+                  <b>Tu solicitud está en revisión.</b>
+                  <p style={{ margin: '4px 0 0', fontSize: 12 }}>
+                    Te avisaremos cuando un administrador la apruebe o la rechace.
+                  </p>
+                </div>
+              )}
+
+              {canSubmitVerification && (
+                <>
+                  <label style={{ fontSize: 12, color: '#888', fontWeight: 600, display: 'block', marginBottom: 10 }}>
+                    Número de registro (Consejo de la Judicatura)
+                    <input
+                      className="input-field"
+                      style={{ marginTop: 4 }}
+                      value={verifyForm.registryNumber}
+                      onChange={(e) => setVerifyForm((f) => ({ ...f, registryNumber: e.target.value }))}
+                      placeholder="Ej. 17-2020-123456"
+                    />
+                  </label>
+                  <label style={{ fontSize: 12, color: '#888', fontWeight: 600, display: 'block', marginBottom: 10 }}>
+                    Universidad
+                    <input
+                      className="input-field"
+                      style={{ marginTop: 4 }}
+                      value={verifyForm.university}
+                      onChange={(e) => setVerifyForm((f) => ({ ...f, university: e.target.value }))}
+                      placeholder="Universidad donde estudiaste"
+                    />
+                  </label>
+                  <label style={{ fontSize: 12, color: '#888', fontWeight: 600, display: 'block', marginBottom: 10 }}>
+                    Años de experiencia
+                    <input
+                      className="input-field"
+                      style={{ marginTop: 4 }}
+                      value={verifyForm.yearsExperience}
+                      onChange={(e) => setVerifyForm((f) => ({ ...f, yearsExperience: e.target.value }))}
+                      placeholder="Ej. 3"
+                    />
+                  </label>
+                  <label style={{ fontSize: 12, color: '#888', fontWeight: 600, display: 'block', marginBottom: 10 }}>
+                    Bio profesional
+                    <textarea
+                      className="input-field"
+                      style={{ marginTop: 4, minHeight: 70, resize: 'vertical' }}
+                      value={verifyForm.bio}
+                      onChange={(e) => setVerifyForm((f) => ({ ...f, bio: e.target.value }))}
+                      placeholder="Especialidades, enfoque de tu práctica…"
+                    />
+                  </label>
+                  <label style={{ fontSize: 12, color: '#888', fontWeight: 600, display: 'block', marginBottom: 10 }}>
+                    Precio referencial de consulta
+                    <input
+                      className="input-field"
+                      style={{ marginTop: 4 }}
+                      value={verifyForm.price}
+                      onChange={(e) => setVerifyForm((f) => ({ ...f, price: e.target.value }))}
+                      placeholder="Ej. $25"
+                    />
+                  </label>
+                </>
+              )}
+
+              {verifyMsg && (
+                <p style={{ fontSize: 13, color: '#5ba76a', margin: '10px 0 0' }}>{verifyMsg}</p>
+              )}
+              {verifyError && (
+                <p style={{ fontSize: 13, color: '#b00020', margin: '10px 0 0' }}>{verifyError}</p>
+              )}
+            </div>
+
+            {canSubmitVerification && (
+              <div className="lawyer-modal-footer">
+                <button
+                  className="landing-btn primary compact"
+                  disabled={verifySaving || !verifyFormValid}
+                  onClick={submitVerify}
+                >
+                  <span>{verifySaving ? 'Enviando…' : 'Enviar solicitud'}</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </section>
   );
 }

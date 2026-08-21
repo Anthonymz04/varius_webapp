@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Heart, MessageCircle, Send, X } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import AuthDialog from '@/app/components/AuthDialog';
+import Skeleton from '@/app/components/Skeleton';
 import {
   Post,
   PostComment,
@@ -174,7 +175,26 @@ export default function ComunidadPage() {
       )}
 
       {loading ? (
-        <p style={{ textAlign: 'center', color: '#999', padding: '40px 0' }}>Cargando publicaciones…</p>
+        <div aria-hidden>
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div className="community-post" key={i}>
+              <div className="community-post-header">
+                <Skeleton width={36} height={36} radius="50%" />
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <Skeleton width="35%" height={13} />
+                  <Skeleton width="20%" height={10} />
+                </div>
+              </div>
+              <Skeleton width="100%" height={12} style={{ marginBottom: 8 }} />
+              <Skeleton width="92%" height={12} style={{ marginBottom: 8 }} />
+              <Skeleton width="60%" height={12} />
+              <div style={{ display: 'flex', gap: 16, marginTop: 14 }}>
+                <Skeleton width={48} height={16} />
+                <Skeleton width={60} height={16} />
+              </div>
+            </div>
+          ))}
+        </div>
       ) : (
         posts.map((post) => (
           <article className="community-post" key={post.id}>

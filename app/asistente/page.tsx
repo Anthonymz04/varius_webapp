@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Bot, MoreHorizontal, Plus, Send } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
+import FormattedText from '@/app/components/FormattedText';
 import {
   Consultation,
   fetchConsultations,
@@ -31,6 +32,16 @@ function AsistenteChat() {
   const [isSending, setIsSending] = useState(false);
   const [recent, setRecent] = useState<Consultation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [savingBanner, setSavingBanner] = useState(false);
+  const chatBodyRef = useRef<HTMLDivElement>(null);
+
+  const showSaveBanner =
+    !!user && !activeId && messages.some((m) => m.from === 'user');
+
+  useEffect(() => {
+    const el = chatBodyRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [messages, isSending]);
 
   useEffect(() => {
     let active = true;
@@ -68,6 +79,12 @@ function AsistenteChat() {
     if (isSending) return;
     setActiveId(c.id);
     setMessages(c.messages.length ? c.messages : [GREETING]);
+  };
+
+  const handleSaveBanner = async () => {
+    setSavingBanner(true);
+    await persist(messages);
+    setSavingBanner(false);
   };
 
   useEffect(() => {
@@ -174,7 +191,7 @@ function AsistenteChat() {
           </button>
         </div>
 
-        <div className="chat-body">
+        <div className="chat-body" ref={chatBodyRef}>
           {messages.map((m, i) => (
             <div className={`message ${m.from}`} key={i}>
               {m.from === 'ai' && (
@@ -182,7 +199,9 @@ function AsistenteChat() {
                   <Bot size={17} />
                 </div>
               )}
-              <p>{m.text}</p>
+              <div className="msg-content">
+                <FormattedText text={m.text} />
+              </div>
             </div>
           ))}
 
@@ -191,7 +210,18 @@ function AsistenteChat() {
               <div className="ai-icon">
                 <Bot size={17} />
               </div>
-              <p>Analizando legislación ecuatoriana…</p>
+              <div className="msg-content">
+                <p>Analizando legislación ecuatoriana…</p>
+              </div>
+            </div>
+          )}
+
+          {showSaveBanner && (
+            <div className="save-banner">
+              <span>Esta conversación aún no está en tu historial de consultas.</span>
+              <button disabled={savingBanner} onClick={handleSaveBanner}>
+                {savingBanner ? 'Guardando…' : 'Guardar en historial'}
+              </button>
             </div>
           )}
 
