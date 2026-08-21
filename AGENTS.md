@@ -17,9 +17,22 @@ npm install
 npm run dev      # desarrollo (http://localhost:3000)
 npm run build    # build de producción
 npm run lint     # eslint de next
+npm run icons    # regenera iconos PNG (PWA) + splash e iconos de launcher Android desde public/icon.svg
+npm run cap:sync # sincroniza Capacitor con el proyecto Android
 ```
 No hay test suite. No hay comando de typecheck separado (usar `npm run build` que corre tsc).
 Nota: el build puede requerir internet SOLO si next/font descarga fuentes por primera vez; después quedan cacheadas.
+
+## App móvil / Capacitor / PWA
+- La app es **PWA** (sw.js + manifest) y además está envuelta en **Capacitor** para generar un APK Android real (`android/`, appId `com.varius.app`).
+- `capacitor.config.ts` usa modo `server.url` (WebView cargando la app desplegada). **PENDIENTE**: reemplazar `https://TU_DOMINIO.vercel.app` por la URL real (Vercel en producción, o `http://IP_PC:3000` + `npm start -H 0.0.0.0` para probar por LAN en el teléfono).
+- Los iconos se generan con `npm run icons` desde `public/icon.svg` (fuente única de la marca):
+  - PWA: `public/icons/icon-192.png`, `icon-512.png`, `maskable-512.png`, `apple-touch-icon.png`
+  - Splash Android: `android/app/src/main/res/drawable*/splash.png`
+  - Launcher Android: `android/app/src/main/res/mipmap-*/ic_launcher*.png`
+- Para el logo REAL: reemplazar `public/icon.svg` y correr `npm run icons`.
+- Para generar el APK: instalar Android Studio, luego `npx cap open android` y Build → APK (o `npx cap build android`). También se puede probar en el emulador de Android Studio.
+- El splash nativo (color + logo al abrir) lo maneja `@capacitor/splash-screen` (config en capacitor.config.ts). El splash web dentro de la app es `MobileSplash` (solo móvil <700px y sin sesión).
 
 ## Variables de entorno
 Archivo `.env.local` (no versionado) con:
@@ -73,6 +86,14 @@ lib/
   firebase/seed-data.ts      # datos semilla de abogados, tutorías y posts
 proxy.ts                # headers de seguridad (antes middleware.ts)
 public/sw.js, manifest.webmanifest  # PWA
+public/icons/           # iconos PNG generados (192/512/maskable/apple-touch)
+scripts/
+  generate-icons.mjs    # genera iconos PNG a partir de public/icon.svg (requiere sharp)
+  generate-splash.mjs   # pinta los splash.png de Android con el icono de marca
+  generate-launcher.mjs # pinta ic_launcher de Android (mipmap) con el icono de marca
+capacitor.config.ts     # Config Capacitor: appId com.varius.app, server.url, splash
+android/                # Proyecto Android generado por Capacitor (para build APK)
+out/                    # Placeholder de assets web para Capacitor (modo server.url)
 ```
 
 ## Colecciones Firestore
@@ -101,6 +122,7 @@ public/sw.js, manifest.webmanifest  # PWA
 - Push solo con confirmación explícita. Commits pequeños y descriptivos, uno por fix.
 
 ## Cambios recientes (historial de decisiones)
+- feat(pwa+capa): logo de marca (V wine + dorado), iconos PNG PWA (192/512/maskable/apple), manifest con background_color wine (splash de instalación), Capacitor instalado con proyecto `android/` (com.varius.app), splash y launcher Android pintados con la marca, scripts `npm run icons` / `npm run cap:sync`
 - fix(chat): scroll con min-height:0 + auto-scroll, banner "Guardar en historial" para conversaciones sin sesión, respuestas con FormattedText (markdown ligero: negritas/listas/párrafos)
 - feat(skeletons): componente Skeleton (shimmer) aplicado a abogados, comunidad, perfil y loading.tsx global
 - feat(verificación): cambiar rol a abogado ya NO es directo — abre modal de verificación → `lawyer_verifications/{uid}` (status 'pendiente'), rol cambia solo con aprobación de admin. Estudiante ahora pide universidad/carrera (users/{uid}.university/.career)

@@ -26,7 +26,13 @@ export const metadata: Metadata = {
   description: 'El puente entre aprender, ejercer y acceder al Derecho.',
   manifest: '/manifest.webmanifest',
   appleWebApp: { capable: true, statusBarStyle: 'default', title: 'VARIUS' },
-  icons: { icon: '/icon.svg', apple: '/icon.svg' },
+  icons: {
+    icon: [
+      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icon.svg', type: 'image/svg+xml' },
+    ],
+    apple: [{ url: '/icons/apple-touch-icon.png', sizes: '180x180' }],
+  },
 };
 
 export const viewport: Viewport = {
