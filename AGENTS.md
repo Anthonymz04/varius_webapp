@@ -115,3 +115,4 @@ public/sw.js, manifest.webmanifest  # PWA
 - **Publicar `firestore.rules`** en Firebase Console (incluye las nuevas colecciones notifications, action_history, mail)
 - Sección "Perfil profesional abogado" (edición de bio/precio) sigue como stub
 - WhatsApp idea futura mencionada por el usuario para constancia de asesorías
+- **Decisión storage (2026-08-20)**: imágenes con Firebase Storage (no Cloudinary); se integra al construir el perfil profesional del abogado (foto + certificaciones en `certifications/{uid}/...`, reglas de privacidad por usuario, estado `lawyers/{id}.verified` para_verificación). Foto de perfil Google usa `photoURL` directo (sin subir nada). Assets de marca van en `/public` + `next/image`.
