@@ -22,14 +22,9 @@ for (const target of targets) {
   const base = await sharp({
     create: { width: m.width, height: m.height, channels: 3, background: '#c2185b' },
   }).png().toBuffer();
+  const logo = await sharp(src).resize(logoSize, logoSize).png().toBuffer();
   await sharp(base)
-    .composite([
-      {
-        input: src,
-        resize: { width: logoSize, height: logoSize },
-        gravity: 'center',
-      },
-    ])
+    .composite([{ input: logo, gravity: 'center' }])
     .png()
     .toFile(path.join(path.dirname(target), 'splash.png'));
   const rel = path.relative(resDir, target);
