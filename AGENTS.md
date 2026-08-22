@@ -25,14 +25,19 @@ Nota: el build puede requerir internet SOLO si next/font descarga fuentes por pr
 
 ## App móvil / Capacitor / PWA
 - La app es **PWA** (sw.js + manifest) y además está envuelta en **Capacitor** para generar un APK Android real (`android/`, appId `com.varius.app`).
-- `capacitor.config.ts` usa modo `server.url` (WebView cargando la app desplegada). **PENDIENTE**: reemplazar `https://TU_DOMINIO.vercel.app` por la URL real (Vercel en producción, o `http://IP_PC:3000` + `npm start -H 0.0.0.0` para probar por LAN en el teléfono).
+- `capacitor.config.ts` usa modo `server.url` (WebView cargando la app desplegada). **ACTUAL**: apunta a `https://desktop-od93sh4.tailc8427e.ts.net:8443` (túnel Tailscale, funciona solo si el teléfono tiene Tailscale conectado). Cuando exista deploy en Vercel, reemplazar por la URL real `https://TU_DOMINIO.vercel.app` (y agregarla a Firebase Authorized Domains).
 - Los iconos se generan con `npm run icons` desde `public/icon.svg` (fuente única de la marca):
   - PWA: `public/icons/icon-192.png`, `icon-512.png`, `maskable-512.png`, `apple-touch-icon.png`
   - Splash Android: `android/app/src/main/res/drawable*/splash.png`
   - Launcher Android: `android/app/src/main/res/mipmap-*/ic_launcher*.png`
-- Para el logo REAL: reemplazar `public/icon.svg` y correr `npm run icons`.
+- Para el logo REAL: reemplazar `public/icon.svg` y correr `npm run icons` (el logo oficial de VARIUS ya está integrado).
 - Para generar el APK: instalar Android Studio, luego `npx cap open android` y Build → APK (o `npx cap build android`). También se puede probar en el emulador de Android Studio.
 - El splash nativo (color + logo al abrir) lo maneja `@capacitor/splash-screen` (config en capacitor.config.ts). El splash web dentro de la app es `MobileSplash` (solo móvil <700px y sin sesión).
+
+### Probar en el teléfono (procedimiento verificado 2026-08-22)
+- **Por LAN**: `npm run build` + `npm start -- -H 0.0.0.0`, abrir `http://IP_PC:3000` en el teléfono (mismo Wi-Fi). Requisitos: (a) red del PC en perfil **Privado** (Configuración → Ethernet → Privada) o regla de firewall `New-NetFirewallRule -DisplayName "VARIUS dev 3000" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 3000 -Profile Any`; (b) Google login NO funciona por IP (Firebase no autoriza IPs) — usar correo/contraseña o el túnel.
+- **Por túnel Tailscale (Google login funciona)**: activar Serve una vez en `https://login.tailscale.com/f/serve?node=...`, luego `tailscale serve --bg --https=8443 http://localhost:3000`. El teléfono (con Tailscale conectado y "Use Tailscale DNS" activo) abre `https://<maquina>.<tailnet>.ts.net:8443`. Agregar `<maquina>.<tailnet>.ts.net` a Firebase → Authentication → Authorized domains. La URL por IP da `ERR_SSL_PROTOCOL_ERROR` (normal, exige SNI/FQDN).
+- **Túnel Cloudflared** (fallback sin Tailscale en el teléfono): `cloudflared tunnel --url http://localhost:3000` → `https://xxx.trycloudflare.com` → agregar a Authorized domains. La URL cambia en cada reinicio.
 
 ## Variables de entorno
 Archivo `.env.local` (no versionado) con:
@@ -146,5 +151,7 @@ out/                    # Placeholder de assets web para Capacitor (modo server.
 - **Perfil profesional abogado** (edición de bio/precio) sigue como stub; foto + certificaciones con Firebase Storage en `certifications/{uid}/...` al construirlo.
 - **Avatar ovalado**: reportado por el usuario, pendiente de revisión visual (CSS parece correcto: width==height + border-radius:50%; sospecha: `<img>` con `height:auto` sin `object-fit:cover`).
 - `npm run lint` está ROTO en Next 16 (interpreta "lint" como directorio; no hay config eslint). Usar `npm run build` (incluye tsc) como verificación.
+- **Deploy a Vercel**: pendiente (la cuenta del proyecto no es del usuario, es colaborador). Mientras tanto, se prueba con túnel Tailscale (serve --https=8443). Ver "Probar en el teléfono" arriba.
+- **APK**: el proyecto Android está generado; para buildear APK: `npx cap open android` → Build → Build APK(s). El server.url apunta al túnel Tailscale.
 - WhatsApp idea futura mencionada por el usuario para constancia de asesorías
 - **Decisión storage (2026-08-20)**: imágenes con Firebase Storage (no Cloudinary); se integra al construir el perfil profesional del abogado (foto + certificaciones en `certifications/{uid}/...`, reglas de privacidad por usuario, estado `lawyers/{id}.verified` para_verificación). Foto de perfil Google usa `photoURL` directo (sin subir nada). Assets de marca van en `/public` + `next/image`.
