@@ -7,11 +7,12 @@ import { User } from 'firebase/auth';
 import {
   GoogleAuthProvider,
   createUserWithEmailAndPassword,
+  fetchSignInMethodsForEmail,
   signInWithEmailAndPassword,
   signInWithPopup,
   updateProfile,
 } from 'firebase/auth';
-import { Bot, Briefcase, GraduationCap, X } from 'lucide-react';
+import { Bot, Briefcase, Eye, EyeOff, GraduationCap, X } from 'lucide-react';
 import { auth, db, isFirebaseConfigured } from '@/lib/firebase/client';
 import { UserRole, createProfile } from '@/lib/firebase/profile';
 
@@ -39,6 +40,7 @@ export default function AuthDialog({ user, close }: AuthDialogProps) {
   const [role, setRole] = useState<UserRole>('citizen');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const ensureProfile = async (activeUser: User, chosenRole: UserRole) =>
     createProfile({
@@ -109,6 +111,20 @@ export default function AuthDialog({ user, close }: AuthDialogProps) {
       close();
     } catch (caught) {
       const code = (caught as { code?: string }).code;
+      if (mode === 'login' && code && auth && email) {
+        try {
+          const methods = await fetchSignInMethodsForEmail(auth, email);
+          if (methods.includes('google.com') && !methods.includes('password')) {
+            const native = typeof window !== 'undefined' && !!(window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.();
+            setError(
+              native
+                ? 'Esta cuenta se creó con Google. En la app móvil usa una cuenta local con correo y contraseña; el login con Google funciona en la versión web.'
+                : 'Esta cuenta se creó con Google. Usa el botón "Continuar con Google" para iniciar sesión.'
+            );
+            return;
+          }
+        } catch {}
+      }
       setError(
         code === 'auth/email-already-in-use'
           ? 'Este correo ya está registrado.'
@@ -240,14 +256,24 @@ export default function AuthDialog({ user, close }: AuthDialogProps) {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
-          <input
-            required
-            minLength={6}
-            type="password"
-            placeholder="Contraseña"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
+          <div className="auth-password-wrap">
+            <input
+              required
+              minLength={6}
+              type={showPassword ? 'text' : 'password'}
+              placeholder="Contraseña"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <button
+              type="button"
+              className="auth-password-toggle"
+              aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+              onClick={() => setShowPassword((s) => !s)}
+            >
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
           {error && <p className="auth-error">{error}</p>}
           <button
             className="primary"

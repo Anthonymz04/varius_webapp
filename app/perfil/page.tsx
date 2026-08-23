@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Award, CalendarDays, FileText, GraduationCap, History, Pencil, X } from 'lucide-react';
+import { Award, CalendarDays, FileText, GraduationCap, History, LogOut, Pencil, X } from 'lucide-react';
 import { updateProfile as updateAuthProfile } from 'firebase/auth';
 import { useAuth } from '@/lib/auth-context';
 import { useMisSolicitudes } from '@/app/hooks/useMisSolicitudes';
 import { ProfileFields, UserRole, updateProfileFields } from '@/lib/firebase/profile';
 import { HistoryItem, fetchHistory } from '@/lib/firebase/notifications';
+import { fetchConsultations } from '@/lib/firebase/consultations';
 import Skeleton from '@/app/components/Skeleton';
 import {
   LawyerVerification,
@@ -22,10 +23,11 @@ const roleLabels: Record<string, string> = {
 };
 
 export default function PerfilPage() {
-  const { user, role, loading, reloadRole } = useAuth();
+  const { user, role, loading, reloadRole, signOut } = useAuth();
   const { requests, reservas, loading: reqLoading } = useMisSolicitudes(user?.uid);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
+  const [consultasCount, setConsultasCount] = useState(0);
 
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState('');
@@ -64,6 +66,22 @@ export default function PerfilPage() {
       .finally(() => {
         if (active) setHistoryLoading(false);
       });
+    return () => {
+      active = false;
+    };
+  }, [user?.uid]);
+
+  useEffect(() => {
+    if (!user) {
+      setConsultasCount(0);
+      return;
+    }
+    let active = true;
+    fetchConsultations(user.uid)
+      .then((list) => {
+        if (active) setConsultasCount(list.length);
+      })
+      .catch(() => {});
     return () => {
       active = false;
     };
@@ -245,6 +263,21 @@ export default function PerfilPage() {
           ) : (
             <span className="role-badge citizen">Sin rol asignado</span>
           )}
+        </div>
+      </div>
+
+      <div className="profile-activity">
+        <div>
+          <b>{consultasCount}</b>
+          <span>Consultas IA</span>
+        </div>
+        <div>
+          <b>{requests.length}</b>
+          <span>Asesorías</span>
+        </div>
+        <div>
+          <b>{reservas.length}</b>
+          <span>Tutorías</span>
         </div>
       </div>
 
@@ -466,6 +499,10 @@ export default function PerfilPage() {
           ))
         )}
       </div>
+
+      <button className="profile-logout" onClick={async () => { await signOut(); }}>
+        <LogOut size={17} /> Cerrar sesión
+      </button>
 
       {verifyOpen && (
         <div className="dialog-bg" onClick={() => setVerifyOpen(false)}>

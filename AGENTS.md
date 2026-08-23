@@ -33,6 +33,8 @@ Nota: el build puede requerir internet SOLO si next/font descarga fuentes por pr
 - Para el logo REAL: reemplazar `public/icon.svg` y correr `npm run icons` (el logo oficial de VARIUS ya está integrado).
 - Para generar el APK: instalar Android Studio, luego `npx cap open android` y Build → APK (o `npx cap build android`). También se puede probar en el emulador de Android Studio.
 - El splash nativo (color + logo al abrir) lo maneja `@capacitor/splash-screen` (config en capacitor.config.ts). El splash web dentro de la app es `MobileSplash` (solo móvil <700px y sin sesión).
+- `MobileSplash` es una máquina de estados con localStorage `varius.onboarded` y flag de módulo `launched`: 1er arranque → bienvenida; siguientes → splash vino ≤1.5s mientras auth carga; al reanudar → `none` (usa `@capacitor/app` appStateChange + visibilitychange).
+- Home móvil autenticado (≤700px): header visible (brand + hamburguesa), saludo 24px sin ✦, línea de actividad en texto, tarjeta IA vino (`.dash-ai-card`) con CTA a /asistente, accesos rápidos 4×2 (`.action-grid`/`.action-card` reestilizados, tile "Más" dispara evento `varius:toggle-menu` que abre el `.mobile-nav`), bottom-nav con safe-area. Secciones de desktop (`.two-col`, `.news`, `.site-footer`) ocultas en móvil. La actividad pasó de `.summary-card` a una sección "Tu actividad" en /perfil (`.profile-activity`).
 
 ### Probar en el teléfono (procedimiento verificado 2026-08-22)
 - **Por LAN**: `npm run build` + `npm start -- -H 0.0.0.0`, abrir `http://IP_PC:3000` en el teléfono (mismo Wi-Fi). Requisitos: (a) red del PC en perfil **Privado** (Configuración → Ethernet → Privada) o regla de firewall `New-NetFirewallRule -DisplayName "VARIUS dev 3000" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 3000 -Profile Any`; (b) Google login NO funciona por IP (Firebase no autoriza IPs) — usar correo/contraseña o el túnel.
@@ -127,6 +129,7 @@ out/                    # Placeholder de assets web para Capacitor (modo server.
 - Push solo con confirmación explícita. Commits pequeños y descriptivos, uno por fix.
 
 ## Cambios recientes (historial de decisiones)
+- feat(rediseño móvil): home autenticado mobile-first (header visible, saludo compacto, tarjeta IA vino, accesos 4×2 por rol, "Más" abre menú, bottom-nav safe-area, splash de arranque con welcome/splash/none, footer oculto en móvil, cerrar sesión en menú y perfil, toggle contraseña, error de cuenta Google al loguear por email)
 - feat(pwa+capa): logo de marca (V wine + dorado), iconos PNG PWA (192/512/maskable/apple), manifest con background_color wine (splash de instalación), Capacitor instalado con proyecto `android/` (com.varius.app), splash y launcher Android pintados con la marca, scripts `npm run icons` / `npm run cap:sync`
 - fix(chat): scroll con min-height:0 + auto-scroll, banner "Guardar en historial" para conversaciones sin sesión, respuestas con FormattedText (markdown ligero: negritas/listas/párrafos)
 - feat(skeletons): componente Skeleton (shimmer) aplicado a abogados, comunidad, perfil y loading.tsx global

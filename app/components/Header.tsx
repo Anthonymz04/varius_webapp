@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { Bot, Menu, Scale, Search, Users, X } from 'lucide-react';
+import { Bot, LogOut, Menu, Scale, Search, Users, X } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import AuthDialog from './AuthDialog';
 import NotificationBell from './NotificationBell';
@@ -18,7 +18,7 @@ const popularSearches = [
 ];
 
 export default function Header() {
-  const { user, loading } = useAuth();
+  const { user, loading, signOut } = useAuth();
   const [menu, setMenu] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -26,6 +26,17 @@ export default function Header() {
   const searchRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const pathname = usePathname();
+
+  useEffect(() => {
+    const toggleMenu = () => setMenu((m) => !m);
+    window.addEventListener('varius:toggle-menu', toggleMenu);
+    return () => window.removeEventListener('varius:toggle-menu', toggleMenu);
+  }, []);
+
+  const handleLogout = async () => {
+    setMenu(false);
+    await signOut();
+  };
 
   const navLinks = [
     { href: '/abogados', label: 'Abogados' },
@@ -244,6 +255,14 @@ export default function Header() {
             >
               Acceder
             </button>
+          )}
+          {user && (
+            <>
+              <div className="menu-sep" />
+              <button className="logout-btn" onClick={handleLogout}>
+                <LogOut size={16} /> Cerrar sesión
+              </button>
+            </>
           )}
         </nav>
       )}

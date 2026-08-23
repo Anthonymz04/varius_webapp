@@ -12,6 +12,8 @@ import {
   FileText,
   GraduationCap,
   History,
+  Info,
+  Menu,
   Scale,
   Search,
   Shield,
@@ -45,6 +47,46 @@ const actionsByRole: Record<string, typeof actions> = {
     { icon: Briefcase, title: 'Mis solicitudes', text: 'Atiende tus asesorías', tint: '#fae7ef', href: '/perfil' },
     { icon: Users, title: 'Comunidad', text: 'Comparte tu conocimiento', tint: '#e8f0e8', href: '/comunidad' },
     { icon: BookOpen, title: 'Biblioteca legal', text: 'Normativa siempre a mano', tint: '#f4edda', href: '/biblioteca' },
+  ],
+};
+
+interface MobileAction {
+  icon: typeof Bot;
+  title: string;
+  href?: string;
+  action?: 'menu';
+}
+
+const mobileActionsByRole: Record<string, MobileAction[]> = {
+  citizen: [
+    { icon: Bot, title: 'Consulta IA', href: '/asistente' },
+    { icon: Search, title: 'Buscar abogado', href: '/abogados' },
+    { icon: CalendarDays, title: 'Agendar asesoría', href: '/abogados' },
+    { icon: BookOpen, title: 'Biblioteca', href: '/biblioteca' },
+    { icon: GraduationCap, title: 'Tutorías', href: '/tutorias' },
+    { icon: Users, title: 'Comunidad', href: '/comunidad' },
+    { icon: Info, title: 'Nosotros', href: '/nosotros' },
+    { icon: Menu, title: 'Más', action: 'menu' },
+  ],
+  student: [
+    { icon: GraduationCap, title: 'Tutorías', href: '/tutorias' },
+    { icon: BookOpen, title: 'Biblioteca', href: '/biblioteca' },
+    { icon: Bot, title: 'Consulta IA', href: '/asistente' },
+    { icon: Users, title: 'Comunidad', href: '/comunidad' },
+    { icon: Search, title: 'Buscar abogado', href: '/abogados' },
+    { icon: CalendarDays, title: 'Agendar asesoría', href: '/abogados' },
+    { icon: Info, title: 'Nosotros', href: '/nosotros' },
+    { icon: Menu, title: 'Más', action: 'menu' },
+  ],
+  lawyer: [
+    { icon: Briefcase, title: 'Mi perfil', href: '/perfil' },
+    { icon: Users, title: 'Comunidad', href: '/comunidad' },
+    { icon: BookOpen, title: 'Biblioteca', href: '/biblioteca' },
+    { icon: Bot, title: 'Consulta IA', href: '/asistente' },
+    { icon: Search, title: 'Buscar abogado', href: '/abogados' },
+    { icon: CalendarDays, title: 'Agendar asesoría', href: '/abogados' },
+    { icon: Info, title: 'Nosotros', href: '/nosotros' },
+    { icon: Menu, title: 'Más', action: 'menu' },
   ],
 };
 
@@ -270,6 +312,7 @@ function Dashboard() {
   const greeting = getGreeting();
   const formattedDate = getFormattedDate();
   const roleActions = role && actionsByRole[role] ? actionsByRole[role] : actions;
+  const mobileActions = (role && mobileActionsByRole[role] ? mobileActionsByRole[role] : mobileActionsByRole.citizen) ?? mobileActionsByRole.citizen;
   const { list: recommended, loading: recLoading } = useLawyers(2);
 
   const [requests, setRequests] = useState(0);
@@ -305,6 +348,7 @@ function Dashboard() {
   }, [user?.uid]);
 
   const activityTotal = requests + reservas;
+  const allEmpty = activityTotal === 0 && consultas === 0;
 
   return (
     <>
@@ -313,9 +357,16 @@ function Dashboard() {
           <div>
             <p className="eyebrow">{formattedDate.toUpperCase()}</p>
             <h1>
-              {greeting}, {displayName} <span>✦</span>
+              {greeting}, {displayName}
             </h1>
             <p className="lead">{roleLead[role ?? 'citizen']}</p>
+            <p className="hero-activity">
+              {statsLoading
+                ? ''
+                : allEmpty
+                  ? <Link href="/asistente">Haz tu primera consulta IA →</Link>
+                  : `${consultas} consultas IA · ${requests} asesorías · ${reservas} tutorías`}
+            </p>
           </div>
           <div className="summary-card">
             <div className="summary-top">
@@ -341,7 +392,7 @@ function Dashboard() {
                   </div>
                 </div>
                 <p>
-                  {activityTotal === 0 && consultas === 0
+                  {allEmpty
                     ? 'Empieza haciendo tu primera consulta a la IA.'
                     : `Llevas ${activityTotal} ${activityTotal === 1 ? 'acción' : 'acciones'} registradas.`}
                 </p>
@@ -350,7 +401,19 @@ function Dashboard() {
           </div>
         </div>
       </section>
-      <section className="section">
+
+      <div className="dash-ai-card">
+        <div className="dash-ai-card-top">
+          <Sparkles size={20} />
+          <h3>Asistente Jurídico IA</h3>
+        </div>
+        <p>Orientación inicial 24/7 en lenguaje sencillo.</p>
+        <Link className="dash-ai-card-cta" href="/asistente">
+          Consultar ahora <ArrowRight size={16} />
+        </Link>
+      </div>
+
+      <section className="section desktop-only">
         <div className="section-title">
           <div>
             <p className="eyebrow">¿CÓMO PODEMOS AYUDARTE?</p>
@@ -368,6 +431,39 @@ function Dashboard() {
                 <b>{a.title}</b>
                 <small>{a.text}</small>
                 <ArrowRight className="card-arrow" size={18} />
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="section home-actions mobile-only">
+        <div className="section-title">
+          <div>
+            <p className="eyebrow">ACCESOS RÁPIDOS</p>
+            <h2>¿Qué necesitas hoy?</h2>
+          </div>
+        </div>
+        <div className="action-grid">
+          {mobileActions.map((a) => {
+            const Icon = a.icon;
+            if (a.action === 'menu') {
+              return (
+                <button
+                  key={a.title}
+                  className="action-card action-card-button"
+                  aria-label="Abrir menú"
+                  onClick={() => window.dispatchEvent(new CustomEvent('varius:toggle-menu'))}
+                >
+                  <Icon size={20} />
+                  <b>{a.title}</b>
+                </button>
+              );
+            }
+            return (
+              <Link className="action-card" key={a.title} href={a.href ?? '/'} style={{ textDecoration: 'none', color: 'inherit' }}>
+                <Icon size={20} />
+                <b>{a.title}</b>
               </Link>
             );
           })}
