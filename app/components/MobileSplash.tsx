@@ -28,11 +28,7 @@ export default function MobileSplash() {
 
   const [phase, setPhase] = useState<Phase>(() => {
     if (launched) return 'none';
-    let onboarded = false;
-    try {
-      onboarded = localStorage.getItem(ONBOARD_KEY) === '1';
-    } catch {}
-    return onboarded ? 'splash' : 'welcome';
+    return 'splash';
   });
 
   useEffect(() => {
@@ -54,15 +50,21 @@ export default function MobileSplash() {
   }, [phase]);
 
   useEffect(() => {
-    if (phase !== 'splash' || loading) return;
+    if (phase !== 'splash' || loading || !user) return;
     const elapsed = Date.now() - splashStart.current;
     const t = setTimeout(() => setPhase('none'), Math.max(0, 1200 - elapsed));
     return () => clearTimeout(t);
-  }, [phase, loading]);
+  }, [phase, loading, user]);
 
   useEffect(() => {
     if (phase !== 'splash' || loading || user) return;
-    setPhase('welcome');
+    const elapsed = Date.now() - splashStart.current;
+    if (elapsed >= 1200) {
+      setPhase('welcome');
+      return;
+    }
+    const t = setTimeout(() => setPhase('welcome'), 1200 - elapsed);
+    return () => clearTimeout(t);
   }, [phase, loading, user]);
 
   useEffect(() => {
@@ -139,7 +141,6 @@ export default function MobileSplash() {
                 try {
                   localStorage.setItem(ONBOARD_KEY, '1');
                 } catch {}
-                setPhase('none');
                 setAuthOpen(true);
               }}
             >
