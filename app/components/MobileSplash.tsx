@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/lib/auth-context';
 import AuthDialog from '@/app/components/AuthDialog';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ArrowRight, Bot, Scale, Users } from 'lucide-react';
 import { App } from '@capacitor/app';
 
@@ -24,6 +24,7 @@ export default function MobileSplash() {
   const { user, loading } = useAuth();
   const [authOpen, setAuthOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const splashStart = useRef(0);
 
   const [phase, setPhase] = useState<Phase>(() => {
     if (launched) return 'none';
@@ -47,9 +48,22 @@ export default function MobileSplash() {
 
   useEffect(() => {
     if (phase !== 'splash') return;
+    splashStart.current = Date.now();
     const t = setTimeout(() => setPhase('none'), 1500);
     return () => clearTimeout(t);
   }, [phase]);
+
+  useEffect(() => {
+    if (phase !== 'splash' || loading) return;
+    const elapsed = Date.now() - splashStart.current;
+    const t = setTimeout(() => setPhase('none'), Math.max(0, 1200 - elapsed));
+    return () => clearTimeout(t);
+  }, [phase, loading]);
+
+  useEffect(() => {
+    if (phase !== 'splash' || loading || user) return;
+    setPhase('welcome');
+  }, [phase, loading, user]);
 
   useEffect(() => {
     if (phase !== 'welcome' || !user) return;
@@ -81,7 +95,7 @@ export default function MobileSplash() {
 
   if (!isMobile) return null;
 
-  if (phase === 'splash' && loading) {
+  if (phase === 'splash') {
     return (
       <div className="boot-splash">
         <div className="boot-logo">V</div>
