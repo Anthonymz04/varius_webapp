@@ -84,6 +84,9 @@ export default function Header() {
       )
     : popularSearches;
 
+  // The home route contains its own application header and navigation.
+  if (pathname === '/') return null;
+
   return (
     <>
       <header>

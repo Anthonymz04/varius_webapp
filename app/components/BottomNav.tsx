@@ -7,6 +7,8 @@ import { Compass, Home as HomeIcon, MessageCircle, Plus, Users } from 'lucide-re
 export default function BottomNav() {
   const pathname = usePathname();
 
+  if (pathname === '/') return null;
+
   return (
     <nav className="bottom-nav">
       <Link href="/" className={pathname === '/' ? 'active' : ''}>

@@ -16,6 +16,7 @@ const err=(e:unknown)=>((e as {code?:string}).code||'').includes('permission-den
 
 export default function HomePage(){
  const [view,setView]=useState<View>('home'),[user,setUser]=useState<User|null>(null),[profile,setProfile]=useState<Profile|null>(null),[lawyers,setLawyers]=useState<Lawyer[]>([]),[notices,setNotices]=useState<Notice[]>([]),[authOpen,setAuthOpen]=useState(false),[noticesOpen,setNoticesOpen]=useState(false),[chat,setChat]=useState<Request|null>(null);
+ useEffect(()=>{const value=new URLSearchParams(window.location.search).get('view');if(value==='lawyers'||value==='ai'||value==='consultations'||value==='profile')setView(value)},[]);
  useEffect(()=>{if(!auth)return;return onAuthStateChanged(auth,setUser)},[]);
  useEffect(()=>{if(!db||!user){setProfile(null);setNotices([]);return}const a=onSnapshot(doc(db,'users',user.uid),s=>setProfile(s.exists()?s.data() as Profile:null));const b=onSnapshot(query(collection(db,'notifications'),where('userId','==',user.uid)),s=>setNotices(s.docs.map(d=>({id:d.id,...d.data()} as Notice))));return()=>{a();b()}},[user]);
  useEffect(()=>{if(!db)return;return onSnapshot(collection(db,'lawyers'),s=>setLawyers(s.docs.map(d=>({id:d.id,...d.data()} as Lawyer)).filter(x=>x.lawyerEnabled)))},[]);
