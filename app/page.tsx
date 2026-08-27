@@ -1,39 +1,573 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
-import { User, createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { addDoc, collection, doc, getDoc, onSnapshot, orderBy, query, serverTimestamp, setDoc, updateDoc, where } from 'firebase/firestore';
-import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
-import { Bell, Bot, Check, FileText, Home, MapPin, MessageCircle, Plus, Search, Send, ShieldCheck, UserRound, X } from 'lucide-react';
-import { auth, db, isFirebaseConfigured, storage } from '../lib/firebase/client';
-import { UserRole, createProfile } from '../lib/firebase/profile';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import {
+  ArrowRight,
+  Bot,
+  BookOpen,
+  Briefcase,
+  CalendarDays,
+  ChevronDown,
+  FileText,
+  GraduationCap,
+  History,
+  Info,
+  Menu,
+  Scale,
+  Search,
+  Shield,
+  Sparkles,
+  Users,
+} from 'lucide-react';
+import { useAuth } from '@/lib/auth-context';
+import LawyerCard from '@/app/components/LawyerCard';
+import AuthDialog from '@/app/components/AuthDialog';
+import HeroCarousel from '@/app/components/HeroCarousel';
+import { fetchLawyers, fetchMyRequests, type Lawyer } from '@/lib/firebase/marketplace';
+import { fetchMisReservas } from '@/lib/firebase/tutorias';
+import { fetchConsultations } from '@/lib/firebase/consultations';
+import { fetchHistory, type HistoryItem } from '@/lib/firebase/notifications';
 
-type View = 'home'|'lawyers'|'ai'|'consultations'|'profile';
-type Profile = {displayName:string;email:string;role:UserRole;city?:string;bio?:string;photoURL?:string;coverURL?:string;nationalId?:string;certificateURL?:string;lawyerEnabled?:boolean;specialty?:string;price?:string};
-type Lawyer = Profile & {id:string}; type Notice={id:string;text:string;read?:boolean};
-type Request={id:string;clientId:string;clientName:string;lawyerId:string;lawyerName?:string;status:'pending'|'accepted'|'rejected';conversationId?:string}; type ChatMessage={id:string;senderId:string;text:string};
-const err=(e:unknown)=>((e as {code?:string}).code||'').includes('permission-denied')?'Sin permisos. Publica las reglas de Firebase actualizadas.':'No se pudo completar la operación. Inténtalo nuevamente.';
+const actions = [
+  { icon: Bot, title: 'Consultar IA', text: 'Aclara una duda legal', tint: '#fae7ef', href: '/asistente' },
+  { icon: Search, title: 'Buscar abogado', text: 'Encuentra al ideal para ti', tint: '#f4edda', href: '/abogados' },
+  { icon: CalendarDays, title: 'Agendar asesoría', text: 'Reserva en pocos minutos', tint: '#e8f0e8', href: '/abogados' },
+];
 
-export default function HomePage(){
- const [view,setView]=useState<View>('home'),[user,setUser]=useState<User|null>(null),[profile,setProfile]=useState<Profile|null>(null),[lawyers,setLawyers]=useState<Lawyer[]>([]),[notices,setNotices]=useState<Notice[]>([]),[authOpen,setAuthOpen]=useState(false),[noticesOpen,setNoticesOpen]=useState(false),[chat,setChat]=useState<Request|null>(null);
- useEffect(()=>{const value=new URLSearchParams(window.location.search).get('view');if(value==='lawyers'||value==='ai'||value==='consultations'||value==='profile')setView(value)},[]);
- useEffect(()=>{if(!auth)return;return onAuthStateChanged(auth,setUser)},[]);
- useEffect(()=>{if(!db||!user){setProfile(null);setNotices([]);return}const a=onSnapshot(doc(db,'users',user.uid),s=>setProfile(s.exists()?s.data() as Profile:null));const b=onSnapshot(query(collection(db,'notifications'),where('userId','==',user.uid)),s=>setNotices(s.docs.map(d=>({id:d.id,...d.data()} as Notice))));return()=>{a();b()}},[user]);
- useEffect(()=>{if(!db)return;return onSnapshot(collection(db,'lawyers'),s=>setLawyers(s.docs.map(d=>({id:d.id,...d.data()} as Lawyer)).filter(x=>x.lawyerEnabled)))},[]);
- const notify=async(userId:string,text:string,type:string,actorId:string)=>{if(!db)return;await addDoc(collection(db,'notifications'),{userId,actorId,text,type,read:false,createdAt:serverTimestamp()});const target=await getDoc(doc(db,'users',userId));const email=target.data()?.email;if(email)await addDoc(collection(db,'mail'),{to:[email],message:{subject:'VARIUS: nueva actividad',text},actorId,createdAt:serverTimestamp()})};
- const history=async(userId:string,action:string,metadata:object={})=>{if(db)await addDoc(collection(db,'actionHistory'),{userId,action,metadata,createdAt:serverTimestamp()})};
- const protectedGo=(v:View)=>user?setView(v):setAuthOpen(true);
- const request=async(l:Lawyer)=>{if(!user||!profile||!db)return setAuthOpen(true);try{await addDoc(collection(db,'consultationRequests'),{clientId:user.uid,clientName:profile.displayName||user.displayName||'Usuario',lawyerId:l.id,lawyerName:l.displayName,status:'pending',createdAt:serverTimestamp()});await notify(l.id,`${profile.displayName||'Un usuario'} busca asesoría contigo.`,'consultation_request',user.uid);await history(user.uid,'Solicitó asesoría jurídica',{lawyerId:l.id});setView('consultations')}catch(e){alert(err(e))}};
- return <main><header><button className="brand" onClick={()=>setView('home')}><span>V</span> VARIUS</button><nav className="desktop-nav"><button onClick={()=>setView('lawyers')}>Abogados</button><button onClick={()=>protectedGo('consultations')}>Asesorías</button></nav><div className="header-actions"><button className="icon-btn" onClick={()=>user?setNoticesOpen(!noticesOpen):setAuthOpen(true)}><Bell size={20}/>{notices.some(n=>!n.read)&&<i/>}</button><button className="avatar small" onClick={()=>protectedGo('profile')}>{profile?.photoURL?<img src={profile.photoURL} alt=""/>:(profile?.displayName||'IN').slice(0,2).toUpperCase()}</button></div></header>
- {noticesOpen&&<Notifications notices={notices} close={()=>setNoticesOpen(false)} />}{view==='home'&&<Landing go={protectedGo} lawyers={lawyers}/>} {view==='lawyers'&&<Marketplace lawyers={lawyers} request={request}/>} {view==='ai'&&<AIChat findLawyer={()=>setView('lawyers')}/>} {view==='consultations'&&user&&<Consultations user={user} profile={profile} notify={notify} history={history} open={setChat}/>} {view==='profile'&&user&&<ProfilePage user={user} profile={profile} history={history}/>} {chat&&user&&<DirectChat request={chat} me={user} profile={profile} close={()=>setChat(null)} findLawyer={()=>setView('lawyers')}/>} 
- <nav className="bottom-nav"><button className={view==='home'?'active':''} onClick={()=>setView('home')}><Home/><span>Inicio</span></button><button className={view==='lawyers'?'active':''} onClick={()=>setView('lawyers')}><Search/><span>Abogados</span></button><button className="create" onClick={()=>protectedGo('consultations')}><Plus/></button><button className={view==='consultations'?'active':''} onClick={()=>protectedGo('consultations')}><MessageCircle/><span>Asesorías</span></button><button className={view==='profile'?'active':''} onClick={()=>protectedGo('profile')}><UserRound/><span>Perfil</span></button></nav>{authOpen&&<AuthDialog user={user} close={()=>setAuthOpen(false)}/>}</main>
+const actionsByRole: Record<string, typeof actions> = {
+  citizen: actions,
+  student: [
+    { icon: GraduationCap, title: 'Tutorías', text: 'Clases 1:1 con profesionales', tint: '#f4edda', href: '/tutorias' },
+    { icon: BookOpen, title: 'Biblioteca legal', text: 'Guías y recursos de estudio', tint: '#e8f0e8', href: '/biblioteca' },
+    { icon: Users, title: 'Comunidad', text: 'Debate con otros estudiantes', tint: '#fae7ef', href: '/comunidad' },
+    { icon: Bot, title: 'Consultar IA', text: 'Explica conceptos difíciles', tint: '#eef1f6', href: '/asistente' },
+  ],
+  lawyer: [
+    { icon: Briefcase, title: 'Mis solicitudes', text: 'Atiende tus asesorías', tint: '#fae7ef', href: '/perfil' },
+    { icon: Users, title: 'Comunidad', text: 'Comparte tu conocimiento', tint: '#e8f0e8', href: '/comunidad' },
+    { icon: BookOpen, title: 'Biblioteca legal', text: 'Normativa siempre a mano', tint: '#f4edda', href: '/biblioteca' },
+  ],
+};
+
+interface MobileAction {
+  icon: typeof Bot;
+  title: string;
+  href?: string;
+  action?: 'menu';
 }
-function Landing({go,lawyers}:{go:(v:View)=>void;lawyers:Lawyer[]}){return <><section className="hero"><div><p className="eyebrow">TU ESPACIO LEGAL</p><h1>El Derecho, más cerca</h1><p className="lead">Consulta, aprende y conéctate con abogados verificados.</p><div className="hero-actions"><button className="primary compact" onClick={()=>go('ai')}><Bot size={17}/> Consultar IA</button><button className="outline compact" onClick={()=>go('lawyers')}>Buscar abogado</button></div></div><div className="progress-card"><ShieldCheck/><b>Profesionales verificados</b><p>Los abogados publican su título profesional para que puedas comprobarlo.</p></div></section><section className="section"><div className="section-title"><div><p className="eyebrow">ABOGADOS REALES</p><h2>Expertos disponibles</h2></div><button className="link" onClick={()=>go('lawyers')}>Ver todos</button></div><div className="lawyer-list">{lawyers.slice(0,3).map(l=><LawyerCard key={l.id} lawyer={l}/>)}{!lawyers.length&&<p className="empty">Todavía no hay abogados verificados.</p>}</div></section></>}
-function LawyerCard({lawyer,action}:{lawyer:Lawyer;action?:()=>void}){return <article className="lawyer-card"><div className="lawyer-head"><div className="avatar">{lawyer.photoURL?<img src={lawyer.photoURL} alt=""/>:lawyer.displayName?.slice(0,2).toUpperCase()}</div><span className="verified"><ShieldCheck size={15}/> Verificado</span></div><h3>{lawyer.displayName}</h3><p>{lawyer.specialty||'Abogado/a'} · {lawyer.city||'Atención virtual'}</p>{lawyer.certificateURL&&<a className="certificate" href={lawyer.certificateURL} target="_blank" rel="noreferrer"><FileText size={14}/> Ver título PDF</a>}<div className="lawyer-bottom"><span>{lawyer.price||'Consulta a convenir'}</span>{action&&<button className="primary compact" onClick={action}>Solicitar</button>}</div></article>}
-function Marketplace({lawyers,request}:{lawyers:Lawyer[];request:(l:Lawyer)=>void}){const [term,setTerm]=useState('');const list=lawyers.filter(l=>`${l.displayName} ${l.city||''} ${l.specialty||''}`.toLowerCase().includes(term.toLowerCase()));return <section className="marketplace"><p className="eyebrow">MARKETPLACE JURÍDICO</p><h1>Encuentra a tu abogado ideal</h1><p className="lead">Solicita asesoría directamente a profesionales con título validable.</p><label className="search-field"><Search size={17}/><input value={term} onChange={e=>setTerm(e.target.value)} placeholder="Nombre, ciudad o especialidad"/></label><p className="results">{list.length} abogados disponibles</p><div className="market-grid">{list.map(l=><LawyerCard key={l.id} lawyer={l} action={()=>request(l)}/>)}</div>{!list.length&&<p className="empty">No encontramos abogados que coincidan con tu búsqueda.</p>}</section>}
-function AuthDialog({user,close}:{user:User|null;close:()=>void}){const [mode,setMode]=useState<'login'|'register'>('login'),[name,setName]=useState(''),[email,setEmail]=useState(''),[password,setPassword]=useState(''),[role,setRole]=useState<UserRole>('citizen'),[cedula,setCedula]=useState(''),[certificate,setCertificate]=useState<File|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false);const submit=async(e:FormEvent)=>{e.preventDefault();if(!auth||!db)return setError('Firebase no está configurado.');if(mode==='register'&&role==='lawyer'&&(!/^\d{10}$/.test(cedula)||!certificate))return setError('Para ser abogado ingresa una cédula de 10 dígitos y un título PDF.');setBusy(true);setError('');try{if(mode==='login')await signInWithEmailAndPassword(auth,email,password);else{const result=await createUserWithEmailAndPassword(auth,email,password);await updateProfile(result.user,{displayName:name});let certificateURL:string|null=null;if(certificate&&storage){const target=ref(storage,`lawyer-certificates/${result.user.uid}/${Date.now()}-${certificate.name}`);await uploadBytes(target,certificate,{contentType:'application/pdf'});certificateURL=await getDownloadURL(target)}await createProfile({uid:result.user.uid,name,email,role,nationalId:role==='lawyer'?cedula:undefined,certificateURL});if(role==='lawyer')await setDoc(doc(db,'lawyers',result.user.uid),{displayName:name,email,role,city:'',specialty:'',price:'',certificateURL,lawyerEnabled:true,createdAt:serverTimestamp()},{merge:true})}close()}catch(e){setError((e as {code?:string}).code==='auth/email-already-in-use'?'Este correo ya está registrado.':err(e))}finally{setBusy(false)}};if(user)return <div className="auth-overlay"><section className="auth-modal"><button className="close" onClick={close}><X/></button><h2>Sesión iniciada</h2><p className="auth-copy">{user.email}</p><button className="primary" onClick={async()=>{await auth?.signOut();close()}}>Cerrar sesión</button></section></div>;return <div className="auth-overlay"><section className="auth-modal"><button className="close" onClick={close}><X/></button><span className="auth-mark">V</span><h2>{mode==='login'?'Bienvenido a VARIUS':'Crea tu cuenta'}</h2><form onSubmit={submit}>{mode==='register'&&<><input required placeholder="Nombre completo" value={name} onChange={e=>setName(e.target.value)}/><select value={role} onChange={e=>setRole(e.target.value as UserRole)}><option value="citizen">Ciudadano</option><option value="student">Estudiante</option><option value="lawyer">Abogado</option></select>{role==='lawyer'&&<><input required inputMode="numeric" maxLength={10} placeholder="Número de cédula (10 dígitos)" value={cedula} onChange={e=>setCedula(e.target.value.replace(/\D/g,''))}/><label className="file-input"><FileText size={17}/><span>{certificate?.name||'Sube tu título profesional (PDF)'}</span><input required type="file" accept="application/pdf,.pdf" onChange={e=>setCertificate(e.target.files?.[0]||null)}/></label></>}</>}<input required type="email" placeholder="Correo electrónico" value={email} onChange={e=>setEmail(e.target.value)}/><input required minLength={6} type="password" placeholder="Contraseña" value={password} onChange={e=>setPassword(e.target.value)}/>{error&&<p className="auth-error">{error}</p>}<button className="primary" disabled={busy||!isFirebaseConfigured}>{busy?'Procesando…':mode==='login'?'Iniciar sesión':'Crear cuenta'}</button></form><button className="switch" onClick={()=>setMode(mode==='login'?'register':'login')}>{mode==='login'?'¿No tienes cuenta? Regístrate':'¿Ya tienes cuenta? Inicia sesión'}</button></section></div>}
-function AIChat({findLawyer}:{findLawyer:()=>void}){const [messages,setMessages]=useState([{from:'ai',text:'Hola. Cuéntame tu situación y te daré orientación legal general.'}]),[draft,setDraft]=useState(''),[sending,setSending]=useState(false);const send=async()=>{const text=draft.trim();if(!text||sending)return;const next=[...messages,{from:'user',text}];setMessages(next);setDraft('');setSending(true);try{const r=await fetch('/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:next.map(m=>({role:m.from==='ai'?'assistant':'user',content:m.text}))})});const d=await r.json();setMessages([...next,{from:'ai',text:d.message||d.error||'No pude procesar la consulta.'}])}catch{setMessages([...next,{from:'ai',text:'No se pudo conectar con el asistente.'}])}finally{setSending(false)}};return <section className="ai-page"><div className="chat"><div className="chat-top"><Bot/><div><b>Asistente jurídico</b><span>Orientación general</span></div><button className="outline compact lawyer-cta" onClick={findLawyer}>Buscar asesoría</button></div><div className="chat-body">{messages.map((m,i)=><div className={`message ${m.from}`} key={i}><p>{m.text}</p></div>)}{sending&&<div className="message ai"><p>Analizando tu consulta…</p></div>}</div><div className="composer"><p>La IA no sustituye el criterio de un abogado.</p><div><textarea value={draft} disabled={sending} onChange={e=>setDraft(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}}} placeholder="Escribe tu consulta legal…"/><button disabled={sending} onClick={send}><Send size={18}/></button></div></div></div></section>}
-function Consultations({user,profile,notify,history,open}:{user:User;profile:Profile|null;notify:(a:string,b:string,c:string,d:string)=>Promise<void>;history:(a:string,b:string,c?:object)=>Promise<void>;open:(r:Request)=>void}){const [items,setItems]=useState<Request[]>([]);const lawyer=profile?.role==='lawyer';useEffect(()=>{if(!db)return;return onSnapshot(query(collection(db,'consultationRequests'),where(lawyer?'lawyerId':'clientId','==',user.uid)),s=>setItems(s.docs.map(d=>({id:d.id,...d.data()} as Request))))},[user,lawyer]);const respond=async(r:Request,status:'accepted'|'rejected')=>{if(!db)return;try{let conversationId=r.conversationId;if(status==='accepted'){conversationId=`consultation_${r.id}`;await setDoc(doc(db,'conversations',conversationId),{participantIds:[r.clientId,r.lawyerId],requestId:r.id,createdAt:serverTimestamp(),updatedAt:serverTimestamp()},{merge:true})}await updateDoc(doc(db,'consultationRequests',r.id),{status,conversationId:conversationId||null,updatedAt:serverTimestamp()});await notify(r.clientId,status==='accepted'?`${profile?.displayName||'Un abogado'} aceptó tu solicitud. Ya puedes conversar.`:`${profile?.displayName||'El abogado'} rechazó la solicitud.`,'consultation_response',user.uid);await history(user.uid,`Solicitud de asesoría ${status==='accepted'?'aceptada':'rechazada'}`,{requestId:r.id});if(status==='accepted')open({...r,status,conversationId})}catch(e){alert(err(e))}};return <section className="page"><p className="eyebrow">ASESORÍAS</p><h1>{lawyer?'Solicitudes de clientes':'Mis asesorías'}</h1><p className="lead">{lawyer?'Acepta una solicitud para abrir un chat privado y permanente.':'Sigue el estado de tus solicitudes y conversa con el abogado cuando acepte.'}</p><div className="request-list">{items.map(r=><article className="request" key={r.id}><div><b>{lawyer?r.clientName:r.lawyerName||'Abogado'}</b><p>Estado: <strong className={r.status}>{r.status==='pending'?'Pendiente':r.status==='accepted'?'Aceptada':'Rechazada'}</strong></p></div>{lawyer&&r.status==='pending'&&<div className="request-actions"><button className="outline compact" onClick={()=>respond(r,'rejected')}>Rechazar</button><button className="primary compact" onClick={()=>respond(r,'accepted')}><Check size={15}/> Aceptar</button></div>}{r.status==='accepted'&&<button className="primary compact" onClick={()=>open(r)}><MessageCircle size={15}/> Abrir chat</button>}</article>)}{!items.length&&<p className="empty">No hay solicitudes todavía.</p>}</div></section>}
-function DirectChat({request,me,profile,close,findLawyer}:{request:Request;me:User;profile:Profile|null;close:()=>void;findLawyer:()=>void}){const [messages,setMessages]=useState<ChatMessage[]>([]),[draft,setDraft]=useState('');useEffect(()=>{if(!db||!request.conversationId)return;return onSnapshot(query(collection(db,'conversations',request.conversationId,'messages'),orderBy('createdAt','asc')),s=>setMessages(s.docs.map(d=>({id:d.id,...d.data()} as ChatMessage))))},[request.conversationId]);const send=async()=>{if(!db||!request.conversationId||!draft.trim())return;const text=draft.trim();setDraft('');await addDoc(collection(db,'conversations',request.conversationId,'messages'),{senderId:me.uid,text,createdAt:serverTimestamp()});await updateDoc(doc(db,'conversations',request.conversationId),{updatedAt:serverTimestamp()})};return <div className="chat-overlay"><section className="direct-chat"><div className="chat-top"><button onClick={close}>←</button><div><b>{profile?.role==='lawyer'?request.clientName:request.lawyerName||'Tu abogado'}</b><span>Asesoría activa · chat permanente</span></div>{profile?.role!=='lawyer'&&<button className="outline compact" onClick={()=>{close();findLawyer()}}>Buscar otro</button>}</div><div className="chat-body">{messages.map(m=><div className={`message ${m.senderId===me.uid?'user':'ai'}`} key={m.id}><p>{m.text}</p></div>)}{!messages.length&&<p className="empty">La asesoría fue aceptada. Inicia la conversación.</p>}</div><div className="composer"><div><textarea value={draft} onChange={e=>setDraft(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}}} placeholder="Escribe un mensaje…"/><button onClick={send}><Send size={18}/></button></div></div></section></div>}
-function ProfilePage({user,profile,history}:{user:User;profile:Profile|null;history:(a:string,b:string,c?:object)=>Promise<void>}){const [form,setForm]=useState<Partial<Profile>>({});const [file,setFile]=useState<File|null>(null),[certificate,setCertificate]=useState<File|null>(null),[message,setMessage]=useState('');useEffect(()=>setForm(profile||{}),[profile]);const save=async(e:FormEvent)=>{e.preventDefault();if(!db)return;if(form.role==='lawyer'&&(!/^\d{10}$/.test(form.nationalId||'')||(!form.certificateURL&&!certificate)))return setMessage('Para activar el perfil de abogado necesitas cédula de 10 dígitos y título PDF.');try{let photoURL=form.photoURL,certificateURL=form.certificateURL;if(file&&storage){const r=ref(storage,`profile-images/${user.uid}/${Date.now()}-${file.name}`);await uploadBytes(r,file);photoURL=await getDownloadURL(r)}if(certificate&&storage){if(certificate.type!=='application/pdf')throw new Error('pdf');const r=ref(storage,`lawyer-certificates/${user.uid}/${Date.now()}-${certificate.name}`);await uploadBytes(r,certificate,{contentType:'application/pdf'});certificateURL=await getDownloadURL(r)}const next={...form,photoURL,certificateURL,lawyerEnabled:form.role==='lawyer'?Boolean(certificateURL):false,updatedAt:serverTimestamp()};await setDoc(doc(db,'users',user.uid),next,{merge:true});if(form.role==='lawyer')await setDoc(doc(db,'lawyers',user.uid),next,{merge:true});await history(user.uid,'Actualizó su perfil');setMessage('Perfil guardado correctamente.')}catch(e){setMessage(e instanceof Error&&e.message==='pdf'?'El certificado debe ser un PDF.':err(e))}};const promote=()=>setForm({...form,role:'lawyer'});return <section className="page profile-page"><div className="profile-cover" style={form.coverURL?{backgroundImage:`url(${form.coverURL})`}:undefined}/><div className="profile-heading"><div className="avatar large">{form.photoURL?<img src={form.photoURL} alt=""/>:(form.displayName||'U').slice(0,2)}</div><div><h1>{form.displayName||'Mi perfil'}</h1><p>{form.role==='lawyer'?'Abogado/a':form.role==='student'?'Estudiante':'Ciudadano/a'}</p></div></div><form className="profile-form" onSubmit={save}><label>Nombre completo<input value={form.displayName||''} onChange={e=>setForm({...form,displayName:e.target.value})}/></label><label>Ciudad<input value={form.city||''} onChange={e=>setForm({...form,city:e.target.value})} placeholder="Ej. Quito"/></label><label>Biografía<textarea value={form.bio||''} onChange={e=>setForm({...form,bio:e.target.value})}/></label><label>Foto de perfil<input type="file" accept="image/*" onChange={e=>setFile(e.target.files?.[0]||null)}/></label><label>URL de portada<input type="url" value={form.coverURL||''} onChange={e=>setForm({...form,coverURL:e.target.value})} placeholder="https://…"/></label>{form.role==='lawyer'?<><label>Cédula<input required inputMode="numeric" maxLength={10} value={form.nationalId||''} onChange={e=>setForm({...form,nationalId:e.target.value.replace(/\D/g,'')})}/></label><label>Especialidad<input value={form.specialty||''} onChange={e=>setForm({...form,specialty:e.target.value})}/></label><label>Precio / consulta<input value={form.price||''} onChange={e=>setForm({...form,price:e.target.value})}/></label><label>Actualizar título profesional (PDF)<input type="file" accept="application/pdf,.pdf" onChange={e=>setCertificate(e.target.files?.[0]||null)}/></label>{form.certificateURL?<a className="certificate" href={form.certificateURL} target="_blank"> <FileText size={17}/> Ver título profesional publicado</a>:<p className="auth-error">No puedes ejercer como abogado hasta subir un título PDF.</p>}</>:<button type="button" className="outline" onClick={promote}>Convertirme en abogado</button>}<button className="primary">Guardar cambios</button>{message&&<p>{message}</p>}</form></section>}
-function Notifications({notices,close}:{notices:Notice[];close:()=>void}){const clear=async(n:Notice)=>{if(db)await updateDoc(doc(db,'notifications',n.id),{read:true})};return <aside className="notifications"><div><b>Notificaciones</b><button onClick={close}><X size={17}/></button></div>{notices.map(n=><button key={n.id} className={!n.read?'unread':''} onClick={()=>clear(n)}>{n.text}</button>)}{!notices.length&&<p>No tienes notificaciones.</p>}</aside>}
+
+const mobileActionsByRole: Record<string, MobileAction[]> = {
+  citizen: [
+    { icon: Bot, title: 'Consulta IA', href: '/asistente' },
+    { icon: Search, title: 'Buscar abogado', href: '/abogados' },
+    { icon: CalendarDays, title: 'Agendar asesoría', href: '/abogados' },
+    { icon: BookOpen, title: 'Biblioteca', href: '/biblioteca' },
+    { icon: GraduationCap, title: 'Tutorías', href: '/tutorias' },
+    { icon: Users, title: 'Comunidad', href: '/comunidad' },
+    { icon: Info, title: 'Nosotros', href: '/nosotros' },
+    { icon: Menu, title: 'Más', action: 'menu' },
+  ],
+  student: [
+    { icon: GraduationCap, title: 'Tutorías', href: '/tutorias' },
+    { icon: BookOpen, title: 'Biblioteca', href: '/biblioteca' },
+    { icon: Bot, title: 'Consulta IA', href: '/asistente' },
+    { icon: Users, title: 'Comunidad', href: '/comunidad' },
+    { icon: Search, title: 'Buscar abogado', href: '/abogados' },
+    { icon: CalendarDays, title: 'Agendar asesoría', href: '/abogados' },
+    { icon: Info, title: 'Nosotros', href: '/nosotros' },
+    { icon: Menu, title: 'Más', action: 'menu' },
+  ],
+  lawyer: [
+    { icon: Briefcase, title: 'Mi perfil', href: '/perfil' },
+    { icon: Users, title: 'Comunidad', href: '/comunidad' },
+    { icon: BookOpen, title: 'Biblioteca', href: '/biblioteca' },
+    { icon: Bot, title: 'Consulta IA', href: '/asistente' },
+    { icon: Search, title: 'Buscar abogado', href: '/abogados' },
+    { icon: CalendarDays, title: 'Agendar asesoría', href: '/abogados' },
+    { icon: Info, title: 'Nosotros', href: '/nosotros' },
+    { icon: Menu, title: 'Más', action: 'menu' },
+  ],
+};
+
+const roleLead: Record<string, string> = {
+  citizen: 'Tu espacio para entender, aprender y avanzar con el Derecho.',
+  student: 'Fórmate con tutorías, recursos y una comunidad que impulsa tu carrera.',
+  lawyer: 'Gestiona tus asesorías, gana visibilidad y comparte tu conocimiento.',
+};
+
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Buenos días';
+  if (hour < 18) return 'Buenas tardes';
+  return 'Buenas noches';
+}
+
+function getFormattedDate(): string {
+  return new Date()
+    .toLocaleDateString('es-EC', { weekday: 'long', day: 'numeric', month: 'long' })
+    .replace(/^\w/, (c) => c.toUpperCase());
+}
+
+function useLawyers(limitCount: number) {
+  const [list, setList] = useState<Lawyer[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    let active = true;
+    fetchLawyers()
+      .then((l) => {
+        if (active) setList(l.slice(0, limitCount));
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [limitCount]);
+  return { list, loading };
+}
+
+/* ══════════════════════════════════════════════════
+   MAIN PAGE — switches between Landing & Dashboard
+   ══════════════════════════════════════════════════ */
+export default function HomePage() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div style={{ display: 'grid', placeItems: 'center', minHeight: '60vh' }}>
+        <p style={{ color: '#999' }}>Cargando…</p>
+      </div>
+    );
+  }
+
+  if (!user) return <LandingPage />;
+  return <Dashboard />;
+}
+
+/* ══════════════════════════════════════════════════
+   LANDING PAGE — shown when NOT logged in
+   ══════════════════════════════════════════════════ */
+function LandingPage() {
+  const [authOpen, setAuthOpen] = useState(false);
+  const [faqOpen, setFaqOpen] = useState<number | null>(null);
+  const { list: lawyers, loading: lawyersLoading } = useLawyers(3);
+
+  const faqs = [
+    { q: '¿VARIUS reemplaza a un abogado?', a: 'No. VARIUS ofrece orientación educativa general. Para casos específicos, te conectamos con profesionales verificados.' },
+    { q: '¿Qué tipo de consultas puedo hacer a la IA?', a: 'Puedes hacer consultas sobre derecho laboral, civil, penal, familiar y constitucional de Ecuador. La IA te orienta de forma general.' },
+    { q: '¿Es gratis?', a: 'Sí. El acceso básico a la plataforma, la IA orientativa y la biblioteca jurídica son gratuitos en el MVP.' },
+  ];
+
+  return (
+    <>
+      <HeroCarousel onOpenAuth={() => setAuthOpen(true)} />
+      <section className="landing-section">
+        <div className="landing-container">
+          <p className="eyebrow">¿CÓMO FUNCIONA?</p>
+          <h2>Tres pasos para acceder al Derecho</h2>
+          <div className="landing-steps">
+            <div className="landing-step">
+              <div className="step-number">1</div>
+              <h3>Elige tu perfil</h3>
+              <p>Ciudadano, estudiante o abogado. Cada uno tiene una experiencia adaptada.</p>
+            </div>
+            <div className="landing-step">
+              <div className="step-number">2</div>
+              <h3>Identifica tu necesidad</h3>
+              <p>Consulta la IA, busca un abogado o explora recursos legales de Ecuador.</p>
+            </div>
+            <div className="landing-step">
+              <div className="step-number">3</div>
+              <h3>Conecta con la solución</h3>
+              <p>Te orientamos hacia el profesional, recurso o herramienta adecuada.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section className="landing-section landing-benefits">
+        <div className="landing-container">
+          <p className="eyebrow">¿POR QUÉ VARIUS?</p>
+          <h2>Un ecosistema jurídico integral</h2>
+          <div className="benefits-grid">
+            <div className="benefit-card">
+              <Bot size={28} />
+              <h3>Asistente IA jurídico</h3>
+              <p>Resuelve dudas legales al instante con inteligencia artificial enfocada en legislación ecuatoriana.</p>
+            </div>
+            <div className="benefit-card">
+              <Users size={28} />
+              <h3>Abogados verificados</h3>
+              <p>Conecta con profesionales reales filtrados por especialidad, ciudad y calificación.</p>
+            </div>
+            <div className="benefit-card">
+              <Scale size={28} />
+              <h3>Biblioteca legal</h3>
+              <p>Constitución, COIP, Código del Trabajo, guías prácticas y modelos de documentos.</p>
+            </div>
+            <div className="benefit-card">
+              <Shield size={28} />
+              <h3>Seguro y confiable</h3>
+              <p>Información verificada con disclaimers legales. La IA orienta, los profesionales acompañan.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section className="landing-section">
+        <div className="landing-container">
+          <div className="section-title">
+            <div>
+              <p className="eyebrow">PROFESIONALES VERIFICADOS</p>
+              <h2>Expertos que te acompañan</h2>
+            </div>
+            <Link href="/abogados" className="link">
+              Ver todos <ArrowRight size={16} />
+            </Link>
+          </div>
+          {lawyersLoading ? (
+            <p style={{ color: '#999' }}>Cargando profesionales…</p>
+          ) : (
+            <div className="landing-lawyers">
+              {lawyers.map((l) => (
+                <LawyerCard lawyer={l} key={l.id} />
+              ))}
+            </div>
+          )}
+          <div style={{ textAlign: 'center', marginTop: '28px' }}>
+            <button className="landing-btn primary compact" onClick={() => setAuthOpen(true)}>
+              <span>Acceder para contactar</span> <ArrowRight size={16} />
+            </button>
+          </div>
+        </div>
+      </section>
+      <section className="landing-section landing-library-preview">
+        <div className="landing-container">
+          <div className="section-title">
+            <div>
+              <p className="eyebrow">BIBLIOTECA JURÍDICA</p>
+              <h2>Recursos legales de Ecuador</h2>
+            </div>
+          </div>
+          <div className="library-preview-grid">
+            {[
+              { title: 'Constitución de la República', type: 'LEY', desc: 'Norma suprema vigente desde 2008.' },
+              { title: 'Código del Trabajo', type: 'CÓDIGO', desc: 'Relaciones entre empleadores y trabajadores.' },
+              { title: 'COIP', type: 'CÓDIGO', desc: 'Código Orgánico Integral Penal.' },
+              { title: 'Guía: Contrato de arriendo', type: 'GUÍA', desc: 'Paso a paso para un contrato válido.' },
+            ].map((r, i) => (
+              <div className="library-preview-card" key={i}>
+                <span className="resource-type">{r.type}</span>
+                <h3>{r.title}</h3>
+                <p>{r.desc}</p>
+              </div>
+            ))}
+          </div>
+          <div style={{ textAlign: 'center', marginTop: '24px' }}>
+            <Link href="/biblioteca" className="landing-btn secondary-dark compact">
+              <span>Explorar biblioteca completa</span> <ArrowRight size={16} />
+            </Link>
+          </div>
+        </div>
+      </section>
+      <section className="landing-section">
+        <div className="landing-container">
+          <p className="eyebrow">PREGUNTAS FRECUENTES</p>
+          <h2>¿Tienes dudas sobre VARIUS?</h2>
+          <div style={{ maxWidth: '720px', margin: '28px auto 0' }}>
+            {faqs.map((faq, i) => (
+              <div className={`faq-item ${faqOpen === i ? 'open' : ''}`} key={i}>
+                <button className="faq-question" onClick={() => setFaqOpen(faqOpen === i ? null : i)}>
+                  {faq.q}
+                  <ChevronDown size={18} />
+                </button>
+                {faqOpen === i && (
+                  <div className="faq-answer">
+                    <p style={{ margin: 0 }}>{faq.a}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          <div style={{ textAlign: 'center', marginTop: '32px' }}>
+            <Link href="/preguntas-frecuentes" className="link" style={{ justifyContent: 'center' }}>
+              Ver todas las preguntas <ArrowRight size={16} />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {authOpen && <AuthDialog user={null} close={() => setAuthOpen(false)} />}
+    </>
+  );
+}
+
+/* ══════════════════════════════════════════════════
+   DASHBOARD — shown when logged in (real data only)
+   ══════════════════════════════════════════════════ */
+function Dashboard() {
+  const { user, role } = useAuth();
+  const displayName = user?.displayName?.split(' ')[0] || 'Usuario';
+  const greeting = getGreeting();
+  const formattedDate = getFormattedDate();
+  const roleActions = role && actionsByRole[role] ? actionsByRole[role] : actions;
+  const mobileActions = (role && mobileActionsByRole[role] ? mobileActionsByRole[role] : mobileActionsByRole.citizen) ?? mobileActionsByRole.citizen;
+  const { list: recommended, loading: recLoading } = useLawyers(2);
+
+  const [requests, setRequests] = useState(0);
+  const [reservas, setReservas] = useState(0);
+  const [consultas, setConsultas] = useState(0);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [statsLoading, setStatsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    setStatsLoading(true);
+    Promise.all([
+      fetchMyRequests(user.uid),
+      fetchMisReservas(user.uid),
+      fetchConsultations(user.uid),
+      fetchHistory(user.uid),
+    ])
+      .then(([reqs, res, cons, hist]) => {
+        if (!active) return;
+        setRequests(reqs.length);
+        setReservas(res.length);
+        setConsultas(cons.length);
+        setHistory(hist.slice(0, 5));
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (active) setStatsLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [user?.uid]);
+
+  const activityTotal = requests + reservas;
+  const allEmpty = activityTotal === 0 && consultas === 0;
+
+  return (
+    <>
+      <section className="hero">
+        <div className="hero-inner">
+          <div>
+            <p className="eyebrow">{formattedDate.toUpperCase()}</p>
+            <h1>
+              {greeting}, {displayName}
+            </h1>
+            <p className="lead">{roleLead[role ?? 'citizen']}</p>
+            <p className="hero-activity">
+              {statsLoading
+                ? ''
+                : allEmpty
+                  ? <Link href="/asistente">Haz tu primera consulta IA →</Link>
+                  : `${consultas} consultas IA · ${requests} asesorías · ${reservas} tutorías`}
+            </p>
+          </div>
+          <div className="summary-card">
+            <div className="summary-top">
+              <span>Tu actividad</span>
+              <History size={16} style={{ color: 'var(--wine)' }} />
+            </div>
+            {statsLoading ? (
+              <p style={{ color: '#999', fontSize: 12 }}>Cargando…</p>
+            ) : (
+              <>
+                <div className="summary-stats">
+                  <div>
+                    <b>{consultas}</b>
+                    <span>Consultas IA</span>
+                  </div>
+                  <div>
+                    <b>{requests}</b>
+                    <span>Asesorías</span>
+                  </div>
+                  <div>
+                    <b>{reservas}</b>
+                    <span>Tutorías</span>
+                  </div>
+                </div>
+                <p>
+                  {allEmpty
+                    ? 'Empieza haciendo tu primera consulta a la IA.'
+                    : `Llevas ${activityTotal} ${activityTotal === 1 ? 'acción' : 'acciones'} registradas.`}
+                </p>
+              </>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <div className="dash-ai-card">
+        <div className="dash-ai-card-top">
+          <Sparkles size={20} />
+          <h3>Asistente Jurídico IA</h3>
+        </div>
+        <p>Orientación inicial 24/7 en lenguaje sencillo.</p>
+        <Link className="dash-ai-card-cta" href="/asistente">
+          Consultar ahora <ArrowRight size={16} />
+        </Link>
+      </div>
+
+      <section className="section desktop-only">
+        <div className="section-title">
+          <div>
+            <p className="eyebrow">¿CÓMO PODEMOS AYUDARTE?</p>
+            <h2>Tu Derecho, a un clic</h2>
+          </div>
+        </div>
+        <div className="action-grid">
+          {roleActions.map((a) => {
+            const Icon = a.icon;
+            return (
+              <Link className="action-card" key={a.title} href={a.href} style={{ textDecoration: 'none', color: 'inherit' }}>
+                <span style={{ background: a.tint }}>
+                  <Icon size={23} />
+                </span>
+                <b>{a.title}</b>
+                <small>{a.text}</small>
+                <ArrowRight className="card-arrow" size={18} />
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="section home-actions mobile-only">
+        <div className="section-title">
+          <div>
+            <p className="eyebrow">ACCESOS RÁPIDOS</p>
+            <h2>¿Qué necesitas hoy?</h2>
+          </div>
+        </div>
+        <div className="action-grid">
+          {mobileActions.map((a) => {
+            const Icon = a.icon;
+            if (a.action === 'menu') {
+              return (
+                <button
+                  key={a.title}
+                  className="action-card action-card-button"
+                  aria-label="Abrir menú"
+                  onClick={() => window.dispatchEvent(new CustomEvent('varius:toggle-menu'))}
+                >
+                  <Icon size={20} />
+                  <b>{a.title}</b>
+                </button>
+              );
+            }
+            return (
+              <Link className="action-card" key={a.title} href={a.href ?? '/'} style={{ textDecoration: 'none', color: 'inherit' }}>
+                <Icon size={20} />
+                <b>{a.title}</b>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+      <section className="two-col">
+        <div className="two-col-inner">
+        <div className="section">
+          <div className="section-title">
+            <div>
+              <p className="eyebrow">PROFESIONALES</p>
+              <h2>Expertos que te acompañan</h2>
+            </div>
+            <Link href="/abogados" className="link">
+              Ver todos <ArrowRight size={16} />
+            </Link>
+          </div>
+          {recLoading ? (
+            <p style={{ color: '#999' }}>Cargando profesionales…</p>
+          ) : recommended.length === 0 ? (
+            <p style={{ color: '#999' }}>Aún no hay profesionales registrados.</p>
+          ) : (
+            <div className="lawyer-list">
+              {recommended.map((l) => (
+                <LawyerCard lawyer={l} key={l.id} />
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="section continue">
+          <div className="section-title">
+            <div>
+              <p className="eyebrow">TU ACTIVIDAD RECIENTE</p>
+              <h2>Últimos movimientos</h2>
+            </div>
+            <Link href="/perfil" className="link">
+              Ver historial <ArrowRight size={16} />
+            </Link>
+          </div>
+          {statsLoading ? (
+            <p style={{ color: '#999' }}>Cargando…</p>
+          ) : history.length === 0 ? (
+            <article className="course">
+              <div className="course-visual">
+                <Scale />
+              </div>
+              <div>
+                <label>SIN ACTIVIDAD AÚN</label>
+                <h3 style={{ marginBottom: 8 }}>
+                  Tu historial aparecerá aquí cuando consultes la IA, pidas una asesoría o reserves una tutoría.
+                </h3>
+              </div>
+            </article>
+          ) : (
+            <ul className="activity-list">
+              {history.map((h) => (
+                <li key={h.id}>
+                  <FileText size={16} style={{ color: 'var(--wine)', flexShrink: 0 }} />
+                  <div>
+                    <b>{h.title}</b>
+                    <small>
+                      {new Date(h.createdAt).toLocaleDateString('es-EC', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </small>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        </div>
+      </section>
+      <section className="news">
+        <div className="section-title">
+          <div>
+            <p className="eyebrow">SIGUE APRENDIENDO</p>
+            <h2>Biblioteca jurídica de Ecuador</h2>
+          </div>
+          <Link href="/biblioteca" className="link">
+            Explorar recursos <ArrowRight size={16} />
+          </Link>
+        </div>
+        <div className="news-grid">
+          <article className="news-accent">
+            <Sparkles />
+            <h3>Aprende con propósito</h3>
+            <p>
+              Accede a la Constitución, códigos vigentes, guías prácticas y modelos de
+              documentos, curados para Ecuador.
+            </p>
+            <Link href="/biblioteca" style={{ color: '#fff', textDecoration: 'none', fontSize: '11px', display: 'flex', gap: '5px', alignItems: 'center' }}>
+              Explorar biblioteca <ArrowRight size={15} />
+            </Link>
+          </article>
+          <article>
+            <span className="tag">TUTORÍAS</span>
+            <h3>Reserva una sesión 1:1</h3>
+            <p>Clases guiadas por profesionales sobre contratos, familia, penal y más.</p>
+            <Link href="/tutorias" style={{ color: 'var(--wine)', textDecoration: 'none', fontSize: '11px', display: 'flex', gap: '5px', alignItems: 'center', marginTop: 8 }}>
+              Ver tutorías <ArrowRight size={15} />
+            </Link>
+          </article>
+        </div>
+      </section>
+    </>
+  );
+}
