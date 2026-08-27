@@ -5,24 +5,14 @@ import { useRouter } from 'next/navigation';
 import { getDoc, doc } from 'firebase/firestore';
 import { User } from 'firebase/auth';
 import {
-  GoogleAuthProvider,
   createUserWithEmailAndPassword,
   fetchSignInMethodsForEmail,
-  signInWithCredential,
   signInWithEmailAndPassword,
-  signInWithPopup,
   updateProfile,
 } from 'firebase/auth';
 import { Bot, Briefcase, Eye, EyeOff, GraduationCap, X } from 'lucide-react';
 import { auth, db, isFirebaseConfigured } from '@/lib/firebase/client';
 import { UserRole, createProfile } from '@/lib/firebase/profile';
-import { SocialLogin } from '@capgo/capacitor-social-login';
-
-const WEB_CLIENT_ID = '574882045841-ranm5dmmrbrme1a8dn6ll7hvq2kp34aj.apps.googleusercontent.com';
-
-function isNative(): boolean {
-  return typeof window !== 'undefined' && !!(window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.();
-}
 
 interface AuthDialogProps {
   user: User | null;
@@ -59,48 +49,6 @@ export default function AuthDialog({ user, close }: AuthDialogProps) {
       role: chosenRole,
     });
 
-  const google = async () => {
-    if (!auth) return setError('Firebase no está disponible.');
-    setBusy(true);
-    setError('');
-    try {
-      let resultUser: User;
-      if (isNative()) {
-        await SocialLogin.initialize({ google: { webClientId: WEB_CLIENT_ID } });
-        const { result } = await SocialLogin.login({ provider: 'google', options: {} });
-        const idToken = (result as { idToken?: string | null }).idToken;
-        if (!idToken) {
-          throw new Error('No se obtuvo el token de Google.');
-        }
-        resultUser = (await signInWithCredential(auth, GoogleAuthProvider.credential(idToken))).user;
-      } else {
-        const result = await signInWithPopup(auth, new GoogleAuthProvider());
-        resultUser = result.user;
-      }
-      let hasRole = false;
-      if (db) {
-        try {
-          const snap = await getDoc(doc(db, 'users', resultUser.uid));
-          hasRole = snap.exists() && Boolean(snap.data().role);
-        } catch {
-          hasRole = false;
-        }
-      }
-      if (hasRole) {
-        close();
-      } else {
-        setPendingUser(resultUser);
-        setStep('role');
-      }
-    } catch {
-      setError(
-        'No se pudo iniciar sesión con Google. Verifica que el proveedor esté habilitado en Firebase.'
-      );
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const pickRole = async (chosen: UserRole) => {
     if (!pendingUser) return;
     setBusy(true);
@@ -135,11 +83,8 @@ export default function AuthDialog({ user, close }: AuthDialogProps) {
         try {
           const methods = await fetchSignInMethodsForEmail(auth, email);
           if (methods.includes('google.com') && !methods.includes('password')) {
-            const native = typeof window !== 'undefined' && !!(window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.();
             setError(
-              native
-                ? 'Esta cuenta se creó con Google. En la app móvil usa una cuenta local con correo y contraseña; el login con Google funciona en la versión web.'
-                : 'Esta cuenta se creó con Google. Usa el botón "Continuar con Google" para iniciar sesión.'
+              'Esta cuenta se creó con Google, que ya no está disponible. Crea una cuenta nueva con correo y contraseña.'
             );
             return;
           }
@@ -195,7 +140,6 @@ export default function AuthDialog({ user, close }: AuthDialogProps) {
     );
   }
 
-  // Step 2: choose role after first Google login
   if (step === 'role') {
     return (
       <div className="auth-overlay" role="dialog" aria-modal="true">
@@ -242,16 +186,6 @@ export default function AuthDialog({ user, close }: AuthDialogProps) {
         {!isFirebaseConfigured && (
           <p className="auth-error">Firebase no está configurado en este entorno.</p>
         )}
-
-        <button
-          className="google"
-          onClick={google}
-          disabled={busy || !isFirebaseConfigured}
-        >
-          Continuar con Google
-        </button>
-
-        <div className="or">o con tu correo</div>
 
         <form onSubmit={submit}>
           {mode === 'register' && (
