@@ -41,6 +41,14 @@ Nota: el build puede requerir internet SOLO si next/font descarga fuentes por pr
 - **Por túnel Tailscale (Google login funciona)**: activar Serve una vez en `https://login.tailscale.com/f/serve?node=...`, luego `tailscale serve --bg --https=8443 http://localhost:3000`. El teléfono (con Tailscale conectado y "Use Tailscale DNS" activo) abre `https://<maquina>.<tailnet>.ts.net:8443`. Agregar `<maquina>.<tailnet>.ts.net` a Firebase → Authentication → Authorized domains. La URL por IP da `ERR_SSL_PROTOCOL_ERROR` (normal, exige SNI/FQDN).
 - **Túnel Cloudflared** (fallback sin Tailscale en el teléfono): `cloudflared tunnel --url http://localhost:3000` → `https://xxx.trycloudflare.com` → agregar a Authorized domains. La URL cambia en cada reinicio.
 
+## Despliegue / Producción (Vercel)
+- **URL oficial**: `https://varius-webapp-one.vercel.app` — deploy del amigo conectado al repo de GitHub (`Anthonymz04/varius_webapp`), **auto-deploy en cada commit a `main`**.
+- **Proyecto personal (transitorio)**: `vercel.com/ariels-projects-daba0557/varius-webapp` — creado con la CLI de Vercel desde la terminal (`vercel --prod`) mientras no había acceso al proyecto oficial; quedó en `https://varius-webapp.vercel.app`. Ya reemplazado por el oficial; se puede borrar en Settings → Danger Zone → Delete Project (no afecta al repo ni al APK).
+- **Variables de entorno en Vercel**: `NEXT_PUBLIC_FIREBASE_*` + `OPENAI_API_KEY` (+ `OPENAI_MODEL`). La CLI de Vercel las importa automáticamente desde `.env.local`; en el proyecto del amigo deben estar configuradas a mano.
+- **Firebase Authorized Domains**: `varius-webapp-one.vercel.app` (oficial) y `varius-webapp.vercel.app` (antiguo) — requerido para Google login en web y APK.
+- **Historial del deploy (2026-08-27)**: 1) deploy temporal vía CLI de Vercel (`vercel --prod`) en la cuenta personal (importa `.env.local` solo); 2) merge de `ariel_branch` → `main` (fast-forward); 3) el amigo conecta el repo a Vercel con auto-deploy; 4) `server.url` del APK pasa a apuntar al dominio oficial.
+- **Nota Google login dentro del APK**: Google bloquea OAuth en WebViews embebidas — dentro del APK funciona el login por correo/contraseña; para Google dentro del APK haría falta integrar `@capacitor/browser` (pendiente). En la versión web el login de Google funciona normal.
+
 ## Variables de entorno
 Archivo `.env.local` (no versionado) con:
 ```
@@ -117,7 +125,7 @@ out/                    # Placeholder de assets web para Capacitor (modo server.
 ## Convenciones y notas
 - Idioma UI: **español**. Sin comentarios en el código (petición explícita del usuario).
 - Los modales/overlays usan z-index 100000 (`.auth-overlay`, `.dialog-bg`) — siempre por encima de `.splash-overlay` (99999).
-- Mobile-first: breakpoint principal 700px (splash + `header` oculto debajo).
+- Mobile-first: breakpoint principal 700px (splash + `header` con brand y hamburguesa + menú con cerrar sesión; bottom-nav fija con safe-area).
 - Roles de usuario: `citizen | student | lawyer` — condicionan acciones del dashboard (actionsByRole en app/page.tsx).
 - Toda funcionalidad Firestore debe degradar elegantemente si !db (fallback seed o mensaje), nunca romper la UI.
 - Docs de negocio/marca: `varius_documentacion_optimizada.md` (fuente de verdad funcional; mockups listan 10 pantallas objetivo).
@@ -125,10 +133,18 @@ out/                    # Placeholder de assets web para Capacitor (modo server.
 
 ## Git
 - Repo: https://github.com/Anthonymz04/varius_webapp
-- Rama de trabajo: **`ariel_branch`**
+- Rama de trabajo: **`ariel_branch`** (se trabaja SIEMPRE aquí).
+- **Producción**: `main` es la rama que despliega Vercel automáticamente (conectada por el amigo).
 - Push solo con confirmación explícita. Commits pequeños y descriptivos, uno por fix.
+- **Flujo para actualizar producción**:
+  1. `git checkout main`
+  2. `git merge ariel_branch` (fast-forward; `main` siempre es ancestro de `ariel_branch`)
+  3. `git push origin main` → Vercel se despliega solo
+  4. `git checkout ariel_branch`
 
 ## Cambios recientes (historial de decisiones)
+- feat(despliegue): producción en Vercel — deploy temporal vía CLI, luego merge a `main` y auto-deploy oficial del amigo en `https://varius-webapp-one.vercel.app`; `server.url` del APK actualizado al dominio oficial; merge de `ariel_branch` → `main` (fast-forward)
+- fix(logout/splash): cerrar sesión vuelve a la bienvenida; splash SIEMPRE al abrir (mín 1.2s), bienvenida sobre el AuthDialog sin mostrar la landing; invitados ven bienvenida en cada apertura
 - feat(rediseño móvil): home autenticado mobile-first (header visible, saludo compacto, tarjeta IA vino, accesos 4×2 por rol, "Más" abre menú, bottom-nav safe-area, splash de arranque con welcome/splash/none, footer oculto en móvil, cerrar sesión en menú y perfil, toggle contraseña, error de cuenta Google al loguear por email)
 - feat(pwa+capa): logo de marca (V wine + dorado), iconos PNG PWA (192/512/maskable/apple), manifest con background_color wine (splash de instalación), Capacitor instalado con proyecto `android/` (com.varius.app), splash y launcher Android pintados con la marca, scripts `npm run icons` / `npm run cap:sync`
 - fix(chat): scroll con min-height:0 + auto-scroll, banner "Guardar en historial" para conversaciones sin sesión, respuestas con FormattedText (markdown ligero: negritas/listas/párrafos)
@@ -154,7 +170,7 @@ out/                    # Placeholder de assets web para Capacitor (modo server.
 - **Perfil profesional abogado** (edición de bio/precio) sigue como stub; foto + certificaciones con Firebase Storage en `certifications/{uid}/...` al construirlo.
 - **Avatar ovalado**: reportado por el usuario, pendiente de revisión visual (CSS parece correcto: width==height + border-radius:50%; sospecha: `<img>` con `height:auto` sin `object-fit:cover`).
 - `npm run lint` está ROTO en Next 16 (interpreta "lint" como directorio; no hay config eslint). Usar `npm run build` (incluye tsc) como verificación.
-- **Deploy a Vercel**: pendiente (la cuenta del proyecto no es del usuario, es colaborador). Mientras tanto, se prueba con túnel Tailscale (serve --https=8443). Ver "Probar en el teléfono" arriba.
-- **APK**: el proyecto Android está generado; para buildear APK: `npx cap open android` → Build → Build APK(s). El server.url apunta al túnel Tailscale.
+- **APK**: el proyecto Android está generado; buildear con `npx cap open android` → Build → Build APK(s), o por terminal `cd android && .\gradlew.bat assembleDebug --no-daemon` (requiere ANDROID_HOME). El `server.url` apunta a `https://varius-webapp-one.vercel.app` (deploy oficial del amigo).
+- **Google login dentro del APK (WebView)**: Google bloquea OAuth en WebViews embebidas; requiere integrar `@capacitor/browser` para abrir el navegador del sistema. En la versión web el login de Google ya funciona.
 - WhatsApp idea futura mencionada por el usuario para constancia de asesorías
 - **Decisión storage (2026-08-20)**: imágenes con Firebase Storage (no Cloudinary); se integra al construir el perfil profesional del abogado (foto + certificaciones en `certifications/{uid}/...`, reglas de privacidad por usuario, estado `lawyers/{id}.verified` para_verificación). Foto de perfil Google usa `photoURL` directo (sin subir nada). Assets de marca van en `/public` + `next/image`.
