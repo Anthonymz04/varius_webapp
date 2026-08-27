@@ -18,7 +18,7 @@ import { auth, db, isFirebaseConfigured } from '@/lib/firebase/client';
 import { UserRole, createProfile } from '@/lib/firebase/profile';
 import { SocialLogin } from '@capgo/capacitor-social-login';
 
-const WEB_CLIENT_ID = '574882045841-aigtk1gtto4budb9nbi1or1ranlot932.apps.googleusercontent.com';
+const WEB_CLIENT_ID = '574882045841-ranm5dmmrbrme1a8dn6ll7hvq2kp34aj.apps.googleusercontent.com';
 
 function isNative(): boolean {
   return typeof window !== 'undefined' && !!(window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.();
