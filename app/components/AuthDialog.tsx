@@ -8,6 +8,7 @@ import {
   GoogleAuthProvider,
   createUserWithEmailAndPassword,
   fetchSignInMethodsForEmail,
+  signInWithCredential,
   signInWithEmailAndPassword,
   signInWithPopup,
   updateProfile,
@@ -15,6 +16,13 @@ import {
 import { Bot, Briefcase, Eye, EyeOff, GraduationCap, X } from 'lucide-react';
 import { auth, db, isFirebaseConfigured } from '@/lib/firebase/client';
 import { UserRole, createProfile } from '@/lib/firebase/profile';
+import { SocialLogin } from '@capgo/capacitor-social-login';
+
+const WEB_CLIENT_ID = '574882045841-aigtk1gtto4budb9nbi1or1ranlot932.apps.googleusercontent.com';
+
+function isNative(): boolean {
+  return typeof window !== 'undefined' && !!(window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.();
+}
 
 interface AuthDialogProps {
   user: User | null;
@@ -56,11 +64,23 @@ export default function AuthDialog({ user, close }: AuthDialogProps) {
     setBusy(true);
     setError('');
     try {
-      const result = await signInWithPopup(auth, new GoogleAuthProvider());
+      let resultUser: User;
+      if (isNative()) {
+        await SocialLogin.initialize({ google: { webClientId: WEB_CLIENT_ID } });
+        const { result } = await SocialLogin.login({ provider: 'google', options: {} });
+        const idToken = (result as { idToken?: string | null }).idToken;
+        if (!idToken) {
+          throw new Error('No se obtuvo el token de Google.');
+        }
+        resultUser = (await signInWithCredential(auth, GoogleAuthProvider.credential(idToken))).user;
+      } else {
+        const result = await signInWithPopup(auth, new GoogleAuthProvider());
+        resultUser = result.user;
+      }
       let hasRole = false;
       if (db) {
         try {
-          const snap = await getDoc(doc(db, 'users', result.user.uid));
+          const snap = await getDoc(doc(db, 'users', resultUser.uid));
           hasRole = snap.exists() && Boolean(snap.data().role);
         } catch {
           hasRole = false;
@@ -69,7 +89,7 @@ export default function AuthDialog({ user, close }: AuthDialogProps) {
       if (hasRole) {
         close();
       } else {
-        setPendingUser(result.user);
+        setPendingUser(resultUser);
         setStep('role');
       }
     } catch {
