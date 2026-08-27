@@ -25,7 +25,7 @@ Nota: el build puede requerir internet SOLO si next/font descarga fuentes por pr
 
 ## App móvil / Capacitor / PWA
 - La app es **PWA** (sw.js + manifest) y además está envuelta en **Capacitor** para generar un APK Android real (`android/`, appId `com.varius.app`).
-- `capacitor.config.ts` usa modo `server.url` (WebView cargando la app desplegada). **ACTUAL**: apunta a `https://desktop-od93sh4.tailc8427e.ts.net:8443` (túnel Tailscale, funciona solo si el teléfono tiene Tailscale conectado). Cuando exista deploy en Vercel, reemplazar por la URL real `https://TU_DOMINIO.vercel.app` (y agregarla a Firebase Authorized Domains).
+- `capacitor.config.ts` usa modo `server.url` (WebView cargando la app desplegada). **ACTUAL**: `https://varius-webapp.vercel.app` (desplegada con `vercel --prod` desde la CLI, cuenta ariels-projects-daba0557; las env vars de `.env.local` se importan solas). Si cambia la URL de producción, actualizar aquí + `npm run cap:sync` + rebuild APK.
 - Los iconos se generan con `npm run icons` desde `public/icon.svg` (fuente única de la marca):
   - PWA: `public/icons/icon-192.png`, `icon-512.png`, `maskable-512.png`, `apple-touch-icon.png`
   - Splash Android: `android/app/src/main/res/drawable*/splash.png`

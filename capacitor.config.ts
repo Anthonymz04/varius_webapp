@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: 'VARIUS',
   webDir: 'out',
   server: {
-    url: 'https://desktop-od93sh4.tailc8427e.ts.net:8443',
+    url: 'https://varius-webapp.vercel.app',
     cleartext: true,
   },
   plugins: {
