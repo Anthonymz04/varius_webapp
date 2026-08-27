@@ -31,6 +31,16 @@ export default function MobileSplash() {
     return 'splash';
   });
 
+  const prevUser = useRef(user);
+
+  useEffect(() => {
+    const wasLogged = !!prevUser.current;
+    prevUser.current = user;
+    if (wasLogged && !user) {
+      setPhase('welcome');
+    }
+  }, [user]);
+
   useEffect(() => {
     launched = true;
   }, []);
@@ -76,7 +86,7 @@ export default function MobileSplash() {
   }, [phase, user]);
 
   useEffect(() => {
-    const forceNone = () => setPhase('none');
+    const forceNone = () => setPhase((p) => (user ? 'none' : p));
     const onVisibility = () => {
       if (document.visibilityState === 'visible') forceNone();
     };
@@ -93,7 +103,7 @@ export default function MobileSplash() {
       document.removeEventListener('visibilitychange', onVisibility);
       appListener?.remove?.();
     };
-  }, []);
+  }, [user]);
 
   if (!isMobile) return null;
 
