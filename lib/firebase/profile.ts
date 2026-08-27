@@ -4,6 +4,21 @@ import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { db } from './client';
 
 export type UserRole = 'citizen' | 'student' | 'lawyer';
+export type ProfileFields = Partial<{
+  displayName: string;
+  role: UserRole;
+  university: string;
+  career: string;
+  city: string;
+  bio: string;
+  photoURL: string | null;
+  coverURL: string | null;
+}>;
+
+export async function updateProfileFields(uid: string, fields: ProfileFields) {
+  if (!db) throw new Error('Firebase no está configurado.');
+  await setDoc(doc(db, 'users', uid), { ...fields, updatedAt: serverTimestamp() }, { merge: true });
+}
 
 export async function createProfile(input: { uid: string; name: string; email: string; photoURL?: string | null; role: UserRole; nationalId?: string; certificateURL?: string | null }) {
   if (!db) throw new Error('Firebase no está configurado.');
