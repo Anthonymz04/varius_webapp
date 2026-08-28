@@ -20,9 +20,9 @@ export default function BottomNav() {
       <Link href="/asistente" className="create">
         <Plus />
       </Link>
-      <Link href="/comunidad" className={pathname === '/comunidad' ? 'active' : ''}>
+      <Link href="/mensajes" className={pathname === '/mensajes' ? 'active' : ''}>
         <MessageCircle />
-        <span>Comunidad</span>
+        <span>Asesorías</span>
       </Link>
       <Link href="/perfil" className={pathname === '/perfil' ? 'active' : ''}>
         <Users />

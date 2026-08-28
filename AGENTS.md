@@ -70,19 +70,21 @@ app/
   globals.css           # TODO el CSS del proyecto (3400+ líneas)
   asistente/            # Chat IA + historial "Mis consultas" (Firestore)
   abogados/             # Marketplace: abogados de Firestore + solicitud de asesoría
+  asesoria/             # (creado) Botón en asistente + panel abogado + chat persistente
+  mensajes/             # (creado) Página de asesorías activas + chat 1:1 con el abogado
   biblioteca/           # Biblioteca legal
   tutorias/             # Tutorías con reserva de fecha/hora (Firestore)
   comunidad/            # Posts, likes y comentarios reales (Firestore)
   nosotros/             # Nosotros y contacto
-  perfil/               # Perfil editable + solicitudes + reservas + historial de acciones
+  perfil/               # Perfil editable (ciudad/bio/portada/avatar) + verificación cédula+PDF + peticiones abogado
   preguntas-frecuentes/ # FAQ estática
   hooks/useMisSolicitudes.ts  # hook solicitudes+reservas del usuario
   components/
     NotificationBell.tsx # campanita con notificaciones en tiempo real (Firestore)
     MobileSplash.tsx    # Splash mobile (<700px, no logueado), botón abre AuthDialog
-    AuthDialog.tsx      # Login/registro; con Google pide rol la primera vez
+    AuthDialog.tsx      # Login/registro por correo/contraseña (Google ELIMINADO)
     Header.tsx          # Nav desktop con buscador y campanita
-    BottomNav.tsx       # Nav inferior mobile
+    BottomNav.tsx       # Nav inferior mobile (Asesorías reemplaza Comunidad)
     HeroCarousel.tsx    # Carrusel hero de landing
     LawyerCard.tsx      # Card de abogado
     FormattedText.tsx   # Render markdown ligero del chat (negritas, listas, párrafos)
@@ -90,14 +92,16 @@ app/
     Footer.tsx
 lib/
   auth-context.tsx      # useAuth() → { user, role, loading, signOut, reloadRole }
-  firebase/client.ts    # init Firebase / flag isFirebaseConfigured
-  firebase/profile.ts   # users/{uid} (createProfile + updateProfileFields)
+  firebase/client.ts    # init Firebase / flag isFirebaseConfigured / storage
+  firebase/profile.ts   # users/{uid} (createProfile, updateProfileFields, fetchUserProfile)
+  firebase/uploads.ts   # (creado) subidas a Storage: cover, avatar, certificado PDF
   firebase/consultations.ts  # colección consultations (historial chat IA)
-  firebase/marketplace.ts    # lawyers + lawyer_requests (+notificación/historial/correo)
-  firebase/tutorias.ts       # tutoria_reservas (+notificación/historial/correo)
+  firebase/marketplace.ts    # lawyers + lawyer_requests (sin correo; notif+historial)
+  firebase/tutorias.ts       # tutoria_reservas (sin correo; notif+historial)
+  firebase/asesorias.ts      # (creado) peticiones asesoría + conversaciones + mensajes
   firebase/comunidad.ts      # community_posts + community_comments (seed incluido)
-  firebase/notifications.ts  # notifications, action_history, mail (cola de correos)
-  firebase/verification.ts   # lawyer_verifications (solicitud de verificación de abogado)
+  firebase/notifications.ts  # notifications, action_history (mail retirado del flujo)
+  firebase/verification.ts   # lawyer_verifications (cédula + certificadoURL PDF)
   firebase/seed-data.ts      # datos semilla de abogados, tutorías y posts
 proxy.ts                # headers de seguridad (antes middleware.ts)
 public/sw.js, manifest.webmanifest  # PWA
@@ -119,7 +123,9 @@ out/                    # Placeholder de assets web para Capacitor (modo server.
 - `tutoria_reservas/{id}` — { uid, tutoriaId, tutoriaTitle, fecha, hora, createdAt }
 - `community_posts/{id}` — { author, authorUid, body, tags, likedBy[], likeCount, commentCount }
 - `community_comments/{id}` — { postId, author, body, createdAt }
-- `lawyer_verifications/{uid}` — { uid, email, fullName, registryNumber, university, yearsExperience, bio, price, status:'pendiente', createdAt }
+- `lawyer_verifications/{uid}` — { uid, email, fullName, registryNumber, university, yearsExperience, bio, price, cedula, certificadoURL, status:'pendiente', createdAt }
+- `lawyer_requests/{id}` — petición de asesoría: { clientUid, clientName, clientEmail, lawyerId, lawyerUid, lawyerName, topic, status:'pendiente'|'aceptada'|'rechazada'|'cancelada', conversacionId }
+- `conversaciones/{id}` — chat persistente: { participants:[clientUid,lawyerUid], clientUid, clientName, lawyerUid, lawyerName, lastMessage, lastMessageAt, createdAt } + subcolección `messages/{msg}` { from, text, createdAt }
 - Patrón: ordenar en cliente, nunca where+orderBy juntos (evita índices compuestos).
 
 ## Convenciones y notas
@@ -143,6 +149,9 @@ out/                    # Placeholder de assets web para Capacitor (modo server.
   4. `git checkout ariel_branch`
 
 ## Cambios recientes (historial de decisiones)
+- feat(asesorías): módulo de asesorías — peticiones del chat/marketplace con aceptar/rechazar del abogado (panel en /perfil), chat persistente 1:1 en /mensajes (conversaciones + subcolección messages, onSnapshot), botón "Buscar otro abogado", notif+historial; se retiró la cola de correos
+- feat(perfil+storage): perfil editable con ciudad/bio, foto de portada y avatar (uploads.ts → covers/{uid}, avatars/{uid}); verificación de abogado con cédula + título PDF (certifications/{uid}/titulo.pdf) visible en el perfil
+- feat(storage): Firebase Storage inicializado en client.ts
 - chore(auth): retirado el login de Google (problemas en WebView) — solo correo/contraseña; se desinstaló `@capgo/capacitor-social-login`
 - feat(despliegue): producción en Vercel — deploy temporal vía CLI, luego merge a `main` y auto-deploy oficial del amigo en `https://varius-webapp-one.vercel.app`; `server.url` del APK actualizado al dominio oficial; merge de `ariel_branch` → `main` (fast-forward)
 - fix(logout/splash): cerrar sesión vuelve a la bienvenida; splash SIEMPRE al abrir (mín 1.2s), bienvenida sobre el AuthDialog sin mostrar la landing; invitados ven bienvenida en cada apertura
@@ -165,13 +174,13 @@ out/                    # Placeholder de assets web para Capacitor (modo server.
 
 ## Pendiente / próximos pasos
 - Test manual pendiente por el usuario
-- **Correos**: plan Spark no envía correos; la cola `mail` queda lista (formato de la extensión Trigger Email). Para activar: migrar a Blaze + instalar extensión "Trigger Email" o Cloud Functions. Decisión del usuario 2026-08-20.
-- **Publicar `firestore.rules`** en Firebase Console (colecciones notifications, action_history, mail, lawyer_verifications). Es el fix del toast "No se pudo enviar" aunque la solicitud sí se guarde (los writes secundarios de notificación fallan sin reglas). El CLI local no tiene proyecto/credenciales (`firebase.json` no existe); publicar manualmente desde la consola o `firebase deploy --only firestore:rules`.
-- **Panel admin de verificación**: pendiente de construir (app separada `admin.varius.ec` o ruta protegida por custom claim `admin`). El flujo cliente ya queda listo: `lawyer_verifications/{uid}` con status pendiente/aprobada/rechazada. El admin aprobará → escribe `users/{uid}.role='lawyer'` y crea `lawyers/{id}` (perfil marketplace). La seguridad NO depende de que la URL sea secreta sino de la autorización (claim + reglas).
-- **Perfil profesional abogado** (edición de bio/precio) sigue como stub; foto + certificaciones con Firebase Storage en `certifications/{uid}/...` al construirlo.
+- **Publicar `firestore.rules`** en Firebase Console (colecciones notifications, action_history, lawyer_verifications, lawyer_requests, conversaciones, messages). Es el fix del toast "No se pudo enviar" aunque la solicitud sí se guarde y de la campanita vacía. El CLI local no tiene proyecto/credenciales (`firebase.json` no existe); publicar manualmente desde la consola o `firebase deploy --only firestore:rules`.
+- **OPENAI_API_KEY en Vercel del amigo**: el chatbot falla en producción porque el deploy del amigo no tiene la key (el código de `app/api/ai` es correcto; local funciona con `.env.local`). El amigo debe agregar `OPENAI_API_KEY` (y `OPENAI_MODEL`) a las env vars de su proyecto Vercel.
+- **Panel admin de verificación**: pendiente de construir (app separada `admin.varius.ec` o ruta protegida por custom claim `admin`). El flujo cliente ya queda listo: `lawyer_verifications/{uid}` con cédula + certificadoURL PDF + status pendiente/aprobada/rechazada. El admin aprobará → escribe `users/{uid}.role='lawyer'`, `users/{uid}.cedula` y crea `lawyers/{id}` (perfil marketplace) con `uid`. Sin admin, los abogados no aparecen (seed eliminado).
+- **Correos**: retirados del flujo (decisión 2026-08-27). La cola `mail` sigue en reglas pero ya no se escribe desde la app.
+- **Perfil profesional abogado** (edición de bio/precio) sigue como stub; se editará con el admin.
 - **Avatar ovalado**: reportado por el usuario, pendiente de revisión visual (CSS parece correcto: width==height + border-radius:50%; sospecha: `<img>` con `height:auto` sin `object-fit:cover`).
 - `npm run lint` está ROTO en Next 16 (interpreta "lint" como directorio; no hay config eslint). Usar `npm run build` (incluye tsc) como verificación.
-- **APK**: el proyecto Android está generado; buildear con `npx cap open android` → Build → Build APK(s), o por terminal `cd android && .\gradlew.bat assembleDebug --no-daemon` (requiere ANDROID_HOME). El `server.url` apunta a `https://varius-webapp-one.vercel.app` (deploy oficial del amigo).
-- **Google login**: ELIMINADO (decisión del usuario 2026-08-27 — daba muchos problemas en la WebView del APK). Solo queda **correo y contraseña** (funciona en web y APK). Se probó `@capgo/capacitor-social-login` + Credential Manager nativo y se retiró (npm uninstall + sync). Si se retoma, hay que re-crear el OAuth Client de Android en Google Cloud Console (package `com.varius.app` + SHA-1) y usar el Web Client ID como `webClientId`.
+- **APK**: buildear con `npx cap open android` → Build → Build APK(s), o `cd android && .\gradlew.bat assembleDebug --no-daemon`. `server.url` apunta a `https://varius-webapp-one.vercel.app`.
 - WhatsApp idea futura mencionada por el usuario para constancia de asesorías
-- **Decisión storage (2026-08-20)**: imágenes con Firebase Storage (no Cloudinary); se integra al construir el perfil profesional del abogado (foto + certificaciones en `certifications/{uid}/...`, reglas de privacidad por usuario, estado `lawyers/{id}.verified` para_verificación). Foto de perfil Google usa `photoURL` directo (sin subir nada). Assets de marca van en `/public` + `next/image`.
+- **Decisión storage (2026-08-20)**: imágenes con Firebase Storage (ya integrado en uploads.ts: covers/{uid}, avatars/{uid}, certifications/{uid}/titulo.pdf). Foto de perfil Google usa `photoURL` directo. Assets de marca van en `/public` + `next/image`.

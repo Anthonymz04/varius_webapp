@@ -43,6 +43,7 @@ export default function Header() {
     { href: '/biblioteca', label: 'Biblioteca' },
     { href: '/tutorias', label: 'Tutorías' },
     { href: '/comunidad', label: 'Comunidad' },
+    { href: '/mensajes', label: 'Asesorías' },
   ];
 
   // Close search dropdown on click outside or Escape

@@ -14,6 +14,8 @@ export interface LawyerVerification {
   yearsExperience: string;
   bio: string;
   price: string;
+  cedula: string;
+  certificadoURL: string;
   status: VerificationStatus;
   createdAt: number;
   updatedAt: number;
@@ -26,6 +28,8 @@ export interface VerificationInput {
   yearsExperience: string;
   bio: string;
   price: string;
+  cedula: string;
+  certificadoURL: string;
 }
 
 export async function submitLawyerVerification(
@@ -44,6 +48,8 @@ export async function submitLawyerVerification(
     yearsExperience: input.yearsExperience.trim(),
     bio: input.bio.trim(),
     price: input.price.trim(),
+    cedula: input.cedula.trim(),
+    certificadoURL: input.certificadoURL,
     status: 'pendiente' as VerificationStatus,
     createdAt: now,
     updatedAt: now,
@@ -65,6 +71,8 @@ export async function fetchLawyerVerification(uid: string): Promise<LawyerVerifi
       yearsExperience: (d.yearsExperience as string) ?? '',
       bio: (d.bio as string) ?? '',
       price: (d.price as string) ?? '',
+      cedula: (d.cedula as string) ?? '',
+      certificadoURL: (d.certificadoURL as string) ?? '',
       status: (d.status as VerificationStatus) ?? 'pendiente',
       createdAt: typeof d.createdAt === 'number' ? d.createdAt : Date.now(),
       updatedAt: typeof d.updatedAt === 'number' ? d.updatedAt : Date.now(),

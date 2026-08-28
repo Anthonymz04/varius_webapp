@@ -3,9 +3,11 @@
 import { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Bot, MoreHorizontal, Plus, Send } from 'lucide-react';
+import { Bot, Briefcase, MoreHorizontal, Plus, Send } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import FormattedText from '@/app/components/FormattedText';
+import { fetchLawyers, Lawyer } from '@/lib/firebase/marketplace';
+import { createRequest } from '@/lib/firebase/asesorias';
 import {
   Consultation,
   fetchConsultations,
@@ -33,7 +35,29 @@ function AsistenteChat() {
   const [recent, setRecent] = useState<Consultation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [savingBanner, setSavingBanner] = useState(false);
+  const [lawyers, setLawyers] = useState<Lawyer[]>([]);
+  const [lawyerModal, setLawyerModal] = useState(false);
   const chatBodyRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let active = true;
+    fetchLawyers().then((l) => { if (active) setLawyers(l); }).catch(() => {});
+    return () => { active = false; };
+  }, []);
+
+  const handleRequest = async (lawyer: Lawyer) => {
+    if (!user) return;
+    await createRequest({
+      clientUid: user.uid,
+      clientName: user.displayName || 'Usuario VARIUS',
+      clientEmail: user.email ?? '',
+      lawyerId: lawyer.id ?? '',
+      lawyerUid: (lawyer as Lawyer & { uid?: string }).uid ?? '',
+      lawyerName: lawyer.name,
+      topic: draft.trim(),
+    });
+    setLawyerModal(false);
+  };
 
   const showSaveBanner =
     !!user && !activeId && messages.some((m) => m.from === 'user');
@@ -155,6 +179,15 @@ function AsistenteChat() {
         >
           <Plus size={18} /> Nueva consulta
         </button>
+        {user && (
+          <button
+            className="new-chat"
+            style={{ marginTop: 6 }}
+            onClick={() => setLawyerModal(true)}
+          >
+            <Briefcase size={16} /> Solicitar asesoría de un abogado
+          </button>
+        )}
         <p>MIS CONSULTAS</p>
         {user ? (
           recent.length ? (
@@ -258,6 +291,37 @@ function AsistenteChat() {
           </div>
         </div>
       </div>
+
+      {lawyerModal && (
+        <div className="dialog-bg" onClick={() => setLawyerModal(false)}>
+          <div className="lawyer-modal" style={{ maxWidth: 440 }} onClick={(e) => e.stopPropagation()}>
+            <button className="close-btn" onClick={() => setLawyerModal(false)}>✕</button>
+            <div className="lawyer-modal-body">
+              <h2 style={{ fontSize: 18, marginBottom: 6 }}>Solicitar asesoría</h2>
+              <p style={{ fontSize: 13, color: '#777', marginBottom: 14 }}>
+                Elige un abogado. Se enviará una petición que podrá aceptar o rechazar; si la acepta, se abrirá un chat directo contigo.
+              </p>
+              {lawyers.length === 0 ? (
+                <p style={{ fontSize: 12, color: '#999' }}>Cargando abogados…</p>
+              ) : (
+                lawyers.map((l) => (
+                  <button
+                    key={l.id}
+                    onClick={() => void handleRequest(l)}
+                    style={{ display: 'flex', gap: 12, alignItems: 'center', width: '100%', padding: '10px 12px', border: '1px solid var(--line)', borderRadius: 12, marginBottom: 8, background: '#fff' }}
+                  >
+                    <span style={{ width: 36, height: 36, borderRadius: '50%', background: l.color, color: '#fff', display: 'grid', placeItems: 'center', fontSize: 12, fontWeight: 700 }}>{l.initials}</span>
+                    <span style={{ textAlign: 'left' }}>
+                      <b style={{ fontSize: 13, display: 'block' }}>{l.name}</b>
+                      <small style={{ color: '#888' }}>{l.role} · {l.city} · {l.price}</small>
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

@@ -3,7 +3,7 @@
 import { addDoc, collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import { SEED_TUTORIAS, SeedTutorialia } from '@/lib/firebase/seed-data';
-import { addHistory, createNotification, queueEmail } from '@/lib/firebase/notifications';
+import { addHistory, createNotification } from '@/lib/firebase/notifications';
 
 export type Tutorialia = SeedTutorialia;
 
@@ -49,11 +49,6 @@ export async function crearReserva(
       `Reservaste "${tutoria.title}" con ${tutoria.tutor} para el ${fecha} a las ${hora}.`
     ),
     addHistory(uid, 'tutoria', `Reservó la tutoría "${tutoria.title}" (${fecha} ${hora})`),
-    queueEmail(
-      [userEmail],
-      'VARIUS | Confirmación de tutoría reservada',
-      `Hola,\n\nTu tutoría en VARIUS quedó confirmada.\n\nTutoría: ${tutoria.title}\nTutor: ${tutoria.tutor}\nFecha: ${fecha}\nHora: ${hora}\nNivel: ${tutoria.level} · Duración: ${tutoria.duration}\n\nRecibirás el enlace de la sesión en línea antes de la fecha programada.\n\nVARIUS — El puente entre aprender, ejercer y acceder al Derecho.`
-    ),
   ]);
 }
 

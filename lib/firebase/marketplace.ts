@@ -3,17 +3,16 @@
 import { addDoc, collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import { SEED_LAWYERS, SeedLawyer } from '@/lib/firebase/seed-data';
-import { addHistory, createNotification, queueEmail } from '@/lib/firebase/notifications';
+import { addHistory, createNotification } from '@/lib/firebase/notifications';
 
 const COLLECTION = 'lawyers';
 
-export type Lawyer = SeedLawyer;
+export type Lawyer = SeedLawyer & { uid?: string };
 
 export async function fetchLawyers(): Promise<Lawyer[]> {
-  if (!db) return SEED_LAWYERS;
+  if (!db) return [];
   try {
     const snap = await getDocs(collection(db, COLLECTION));
-    if (snap.empty) return SEED_LAWYERS;
     return snap.docs.map((d) => {
       const data = d.data() as Record<string, string>;
       return {
@@ -29,10 +28,11 @@ export async function fetchLawyers(): Promise<Lawyer[]> {
         bio: data.bio ?? '',
         education: data.education ?? '',
         experience: data.experience ?? '',
+        uid: data.uid ?? '',
       };
     });
   } catch {
-    return SEED_LAWYERS;
+    return [];
   }
 }
 
@@ -68,14 +68,9 @@ export async function createConsultationRequest(
       uid,
       'asesoria',
       'Solicitud de asesoría enviada',
-      `Tu solicitud con ${lawyer.name} (${lawyer.role}) quedó registrada el ${fecha}. Te contactaremos pronto.`
+      `Tu solicitud con ${lawyer.name} (${lawyer.role}) quedó registrada el ${fecha}.`
     ),
     addHistory(uid, 'asesoria', `Solicitó asesoría con ${lawyer.name} (${lawyer.role})`),
-    queueEmail(
-      [userEmail, ...(lawyerEmail ? [lawyerEmail] : [])],
-      `VARIUS | Solicitud de asesoría con ${lawyer.name}`,
-      `Hola,\n\nSe ha registrado una solicitud de asesoría jurídica en VARIUS.\n\nAbogado: ${lawyer.name} (${lawyer.role})\nCiudad: ${lawyer.city}\nCliente: ${userEmail}\nPrecio referencial: ${lawyer.price}\nFecha: ${fecha}\n\nEl equipo de VARIUS coordinará el contacto. Este correo es automático.\n\nVARIUS — El puente entre aprender, ejercer y acceder al Derecho.`
-    ),
   ]);
 }
 
