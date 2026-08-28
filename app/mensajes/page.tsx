@@ -81,7 +81,7 @@ function ChatInner() {
     );
   }
 
-  const otherName = (c: Conversacion) => (c.clientUid === user.uid ? c.lawyerName : c.clientName);
+  const otherName = (c: Conversacion) => (c.clientId === user.uid ? c.lawyerName : c.clientName);
 
   const handleSend = async () => {
     if (!activeId || !draft.trim() || sending) return;
@@ -97,11 +97,10 @@ function ChatInner() {
   const handleRequest = async (lawyer: Lawyer) => {
     if (!user) return;
     await createRequest({
-      clientUid: user.uid,
+      clientId: user.uid,
       clientName: user.displayName || 'Usuario VARIUS',
       clientEmail: user.email ?? '',
-      lawyerId: lawyer.id ?? '',
-      lawyerUid: (lawyer as Lawyer & { uid?: string }).uid ?? '',
+      lawyerId: (lawyer as Lawyer & { uid?: string }).uid ?? '',
       lawyerName: lawyer.name,
     });
     setLawyerModal(false);
@@ -150,7 +149,7 @@ function ChatInner() {
             <>
               <div className="mensajes-chat-head">
                 <span>{otherName(active)}</span>
-                {active.clientUid === user.uid && (
+                {active.clientId === user.uid && (
                   <button onClick={() => setLawyerModal(true)} style={{ fontSize: 12, color: 'var(--wine)' }}>
                     Buscar otro abogado
                   </button>
@@ -163,7 +162,7 @@ function ChatInner() {
                   </div>
                 )}
                 {messages.map((m) => (
-                  <div key={m.id} className={`mensaje ${m.from === user.uid ? 'user' : 'ai'}`}>
+                  <div key={m.id} className={`mensaje ${m.senderId === user.uid ? 'user' : 'ai'}`}>
                     <div className="msg-content"><FormattedText text={m.text} /></div>
                   </div>
                 ))}

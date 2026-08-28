@@ -48,11 +48,10 @@ function AsistenteChat() {
   const handleRequest = async (lawyer: Lawyer) => {
     if (!user) return;
     await createRequest({
-      clientUid: user.uid,
+      clientId: user.uid,
       clientName: user.displayName || 'Usuario VARIUS',
       clientEmail: user.email ?? '',
-      lawyerId: lawyer.id ?? '',
-      lawyerUid: (lawyer as Lawyer & { uid?: string }).uid ?? '',
+      lawyerId: (lawyer as Lawyer & { uid?: string }).uid ?? '',
       lawyerName: lawyer.name,
       topic: draft.trim(),
     });

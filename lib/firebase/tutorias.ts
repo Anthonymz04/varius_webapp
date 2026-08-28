@@ -44,6 +44,7 @@ export async function crearReserva(
   await Promise.all([
     createNotification(
       uid,
+      uid,
       'tutoria',
       'Tutoría reservada',
       `Reservaste "${tutoria.title}" con ${tutoria.tutor} para el ${fecha} a las ${hora}.`

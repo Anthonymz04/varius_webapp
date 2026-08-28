@@ -38,10 +38,12 @@ export async function fetchLawyers(): Promise<Lawyer[]> {
 
 export interface ConsultationRequest {
   id: string;
-  uid: string;
-  userEmail: string;
+  clientId: string;
+  clientName: string;
+  clientEmail: string;
   lawyerId: string;
   lawyerName: string;
+  status: string;
   createdAt: number;
 }
 
@@ -52,24 +54,19 @@ export async function createConsultationRequest(
   lawyerEmail?: string
 ): Promise<void> {
   if (!db) throw new Error('Firebase no está configurado');
-  await addDoc(collection(db, 'lawyer_requests'), {
-    uid,
-    userEmail,
-    lawyerId: lawyer.id,
+  await addDoc(collection(db, 'consultationRequests'), {
+    clientId: uid,
+    clientName: '',
+    clientEmail: userEmail,
+    lawyerId: (lawyer as Lawyer & { uid?: string }).uid ?? '',
     lawyerName: lawyer.name,
-    lawyerEmail: lawyerEmail ?? null,
     status: 'pendiente',
     createdAt: Date.now(),
   });
 
   const fecha = new Date().toLocaleDateString('es-EC', { day: 'numeric', month: 'long', year: 'numeric' });
   await Promise.all([
-    createNotification(
-      uid,
-      'asesoria',
-      'Solicitud de asesoría enviada',
-      `Tu solicitud con ${lawyer.name} (${lawyer.role}) quedó registrada el ${fecha}.`
-    ),
+    createNotification(uid, uid, 'asesoria', 'Solicitud de asesoría enviada', `Tu solicitud con ${lawyer.name} (${lawyer.role}) quedó registrada el ${fecha}.`),
     addHistory(uid, 'asesoria', `Solicitó asesoría con ${lawyer.name} (${lawyer.role})`),
   ]);
 }
@@ -77,16 +74,18 @@ export async function createConsultationRequest(
 export async function fetchMyRequests(uid: string): Promise<ConsultationRequest[]> {
   if (!db) return [];
   try {
-    const q = query(collection(db, 'lawyer_requests'), where('uid', '==', uid));
+    const q = query(collection(db, 'consultationRequests'), where('clientId', '==', uid));
     const snap = await getDocs(q);
     const list = snap.docs.map((d) => {
       const data = d.data();
       return {
         id: d.id,
-        uid,
-        userEmail: (data.userEmail as string) ?? '',
+        clientId: uid,
+        clientName: (data.clientName as string) ?? '',
+        clientEmail: (data.clientEmail as string) ?? '',
         lawyerId: (data.lawyerId as string) ?? '',
         lawyerName: (data.lawyerName as string) ?? '',
+        status: (data.status as string) ?? 'pendiente',
         createdAt: typeof data.createdAt === 'number' ? data.createdAt : Date.now(),
       };
     });

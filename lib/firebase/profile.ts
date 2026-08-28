@@ -16,6 +16,9 @@ export interface UserProfile {
   city?: string;
   bio?: string;
   cedula?: string;
+  nationalId?: string;
+  certificateURL?: string;
+  lawyerEnabled?: boolean;
 }
 
 export async function fetchUserProfile(uid: string): Promise<UserProfile | null> {
@@ -23,48 +26,51 @@ export async function fetchUserProfile(uid: string): Promise<UserProfile | null>
   try {
     const snap = await getDoc(doc(db, 'users', uid));
     if (!snap.exists()) return null;
-    const d = snap.data() as UserProfile;
-    return d;
+    return snap.data() as UserProfile;
   } catch {
     return null;
   }
 }
 
-export async function createProfile(input: { uid: string; name: string; email: string; photoURL?: string | null; role?: UserRole | null }) {
+export async function createProfile(input: {
+  uid: string;
+  name: string;
+  email: string;
+  photoURL?: string | null;
+  role: UserRole;
+  nationalId?: string;
+  certificateURL?: string | null;
+}) {
   if (!db) throw new Error('Firebase no está configurado.');
   await setDoc(doc(db, 'users', input.uid), {
     displayName: input.name,
     email: input.email,
     photoURL: input.photoURL ?? null,
+    role: input.role,
+    nationalId: input.nationalId ?? null,
+    certificateURL: input.certificateURL ?? null,
+    lawyerEnabled: input.role === 'lawyer' && Boolean(input.certificateURL),
     updatedAt: serverTimestamp(),
     createdAt: serverTimestamp(),
-    ...(input.role ? { role: input.role } : {}),
   }, { merge: true });
 }
 
-export interface ProfileFields {
-  displayName?: string;
-  role?: UserRole;
-  university?: string;
-  career?: string;
-  city?: string;
-  bio?: string;
-  photoURL?: string;
-  coverURL?: string;
-  cedula?: string;
-}
+export type ProfileFields = Partial<{
+  displayName: string;
+  role: UserRole;
+  university: string;
+  career: string;
+  city: string;
+  bio: string;
+  photoURL: string;
+  coverURL: string;
+  cedula: string;
+  nationalId: string;
+  certificateURL: string;
+  lawyerEnabled: boolean;
+}>;
 
 export async function updateProfileFields(uid: string, fields: ProfileFields): Promise<void> {
   if (!db) throw new Error('Firebase no está configurado.');
-  const patch: Record<string, unknown> = { updatedAt: serverTimestamp() };
-  if (fields.displayName !== undefined) patch.displayName = fields.displayName;
-  if (fields.role !== undefined) patch.role = fields.role;
-  if (fields.university !== undefined) patch.university = fields.university;
-  if (fields.career !== undefined) patch.career = fields.career;
-  if (fields.city !== undefined) patch.city = fields.city;
-  if (fields.bio !== undefined) patch.bio = fields.bio;
-  if (fields.photoURL !== undefined) patch.photoURL = fields.photoURL;
-  if (fields.coverURL !== undefined) patch.coverURL = fields.coverURL;
-  if (fields.cedula !== undefined) patch.cedula = fields.cedula;
-  await setDoc(doc(db, 'users', uid), patch, { merge: true });
+  await setDoc(doc(db, 'users', uid), { ...fields, updatedAt: serverTimestamp() }, { merge: true });
 }

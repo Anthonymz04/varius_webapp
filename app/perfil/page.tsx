@@ -106,9 +106,9 @@ export default function PerfilPage() {
       await updateRequestStatus(req.id, status);
       if (status === 'aceptada') {
         const conversacionId = await createConversacion({
-          clientUid: req.clientUid,
+          clientId: req.clientId,
           clientName: req.clientName,
-          lawyerUid: user.uid,
+          lawyerId: user.uid,
           lawyerName: user.displayName || 'Abogado VARIUS',
           requestId: req.id,
         });
