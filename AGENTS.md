@@ -76,6 +76,7 @@ app/
   tutorias/             # Tutorías con reserva de fecha/hora (Firestore)
   comunidad/            # Posts, likes y comentarios reales (Firestore)
   nosotros/             # Nosotros y contacto
+  admin/                # (creado) Panel de administración: aprueba/rechaza verificaciones (rol 'admin')
   perfil/               # Perfil editable (ciudad/bio/portada/avatar) + verificación cédula+PDF + peticiones abogado
   preguntas-frecuentes/ # FAQ estática
   hooks/useMisSolicitudes.ts  # hook solicitudes+reservas del usuario
@@ -149,7 +150,8 @@ out/                    # Placeholder de assets web para Capacitor (modo server.
   4. `git checkout ariel_branch`
 
 ## Cambios recientes (historial de decisiones)
-- feat(asesorías): módulo de asesorías — peticiones del chat/marketplace con aceptar/rechazar del abogado (panel en /perfil), chat persistente 1:1 en /mensajes (conversaciones + subcolección messages, onSnapshot), botón "Buscar otro abogado", notif+historial; se retiró la cola de correos
+- feat(admin): panel de administración en `/admin` — aprueba/rechaza verificaciones de abogado (rol 'admin'), al aprobar crea `lawyers/{uid}` y cambia el rol
+- feat(asesorías): módulo de asesorías — peticiones del chat/marketplace con aceptar/rechazar del abogado (panel en /perfil), chat persistente 1:1 en /mensajes (conversations + subcolección messages, onSnapshot), botón "Buscar otro abogado", notif+historial; se retiró la cola de correos
 - feat(perfil+storage): perfil editable con ciudad/bio, foto de portada y avatar (uploads.ts → covers/{uid}, avatars/{uid}); verificación de abogado con cédula + título PDF (certifications/{uid}/titulo.pdf) visible en el perfil
 - feat(storage): Firebase Storage inicializado en client.ts
 - chore(auth): retirado el login de Google (problemas en WebView) — solo correo/contraseña; se desinstaló `@capgo/capacitor-social-login`
@@ -176,7 +178,7 @@ out/                    # Placeholder de assets web para Capacitor (modo server.
 - Test manual pendiente por el usuario
 - **Publicar `firestore.rules`** en Firebase Console (colecciones notifications, action_history, lawyer_verifications, lawyer_requests, conversaciones, messages). Es el fix del toast "No se pudo enviar" aunque la solicitud sí se guarde y de la campanita vacía. El CLI local no tiene proyecto/credenciales (`firebase.json` no existe); publicar manualmente desde la consola o `firebase deploy --only firestore:rules`.
 - **OPENAI_API_KEY en Vercel del amigo**: el chatbot falla en producción porque el deploy del amigo no tiene la key (el código de `app/api/ai` es correcto; local funciona con `.env.local`). El amigo debe agregar `OPENAI_API_KEY` (y `OPENAI_MODEL`) a las env vars de su proyecto Vercel.
-- **Panel admin de verificación**: pendiente de construir (app separada `admin.varius.ec` o ruta protegida por custom claim `admin`). El flujo cliente ya queda listo: `lawyer_verifications/{uid}` con cédula + certificadoURL PDF + status pendiente/aprobada/rechazada. El admin aprobará → escribe `users/{uid}.role='lawyer'`, `users/{uid}.cedula` y crea `lawyers/{id}` (perfil marketplace) con `uid`. Sin admin, los abogados no aparecen (seed eliminado).
+- **Panel admin de verificación**: CONSTRUIDO en `/admin` (rol `users/{uid}.role='admin'`). Lista las `lawyer_verifications` pendientes (cédula + PDF + campos) y Aprueba/Rechaza. Al aprobar: escribe `users/{uid}.role='lawyer'` + `cedula`/`nationalId` + `certificateURL` y crea `lawyers/{uid}` (perfil marketplace con `uid`). Reglas permiten `isAdmin()` escribir en users/lawyers; el rol `admin` se asigna manualmente en la consola de Firebase (no se puede auto-promover, `validRole()` no incluye 'admin').
 - **Correos**: retirados del flujo (decisión 2026-08-27). La cola `mail` sigue en reglas pero ya no se escribe desde la app.
 - **Perfil profesional abogado** (edición de bio/precio) sigue como stub; se editará con el admin.
 - **Avatar ovalado**: reportado por el usuario, pendiente de revisión visual (CSS parece correcto: width==height + border-radius:50%; sospecha: `<img>` con `height:auto` sin `object-fit:cover`).

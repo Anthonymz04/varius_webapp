@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Award, CalendarDays, Camera, Check, FileText, GraduationCap, History, LogOut, Pencil, Upload, X } from 'lucide-react';
+import { Award, CalendarDays, Camera, Check, FileText, GraduationCap, History, LogOut, Pencil, ShieldCheck, Upload, X } from 'lucide-react';
 import { updateProfile as updateAuthProfile } from 'firebase/auth';
 import { useAuth } from '@/lib/auth-context';
 import { useMisSolicitudes } from '@/app/hooks/useMisSolicitudes';
@@ -494,6 +494,13 @@ export default function PerfilPage() {
         )}
       </div>
 
+      {role === 'admin' && (
+        <Link href="/admin" style={{ textDecoration: 'none', marginBottom: 10, display: 'block' }}>
+          <button className="profile-logout" style={{ border: '1px solid var(--line)', color: 'var(--ink)' }}>
+            <ShieldCheck size={17} /> Panel de administración
+          </button>
+        </Link>
+      )}
       <button className="profile-logout" onClick={async () => { await signOut(); }}><LogOut size={17} /> Cerrar sesión</button>
 
       {verifyOpen && (

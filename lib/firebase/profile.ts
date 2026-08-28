@@ -3,7 +3,7 @@
 import { doc, serverTimestamp, setDoc, getDoc } from 'firebase/firestore';
 import { db } from './client';
 
-export type UserRole = 'citizen' | 'student' | 'lawyer';
+export type UserRole = 'citizen' | 'student' | 'lawyer' | 'admin';
 
 export interface UserProfile {
   displayName?: string;
