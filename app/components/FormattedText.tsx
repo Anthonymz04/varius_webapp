@@ -50,6 +50,17 @@ export default function FormattedText({ text }: { text: string }) {
       key = flushList(key);
       continue;
     }
+    const heading = line.match(/^(#{1,3})\s+(.*)$/);
+    if (heading) {
+      key = flushList(key);
+      const level = heading[1].length;
+      const content = renderInline(heading[2]);
+      if (level === 1) blocks.push(<h3 key={key} className="msg-h">{content}</h3>);
+      else if (level === 2) blocks.push(<h4 key={key} className="msg-h">{content}</h4>);
+      else blocks.push(<h5 key={key} className="msg-h">{content}</h5>);
+      key += 1;
+      continue;
+    }
     const bullet = line.match(/^[-•*]\s+(.*)$/);
     const ordered = line.match(/^\d+[.)]\s+(.*)$/);
     if (bullet || ordered) {
