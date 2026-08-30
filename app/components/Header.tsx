@@ -85,8 +85,9 @@ export default function Header() {
       )
     : popularSearches;
 
-  // The home route contains its own application header and navigation.
-  if (pathname === '/') return null;
+  // The home route for guests has its own landing header; logged-in users
+  // still need the global header (brand, bell, account).
+  if (pathname === '/' && !user) return null;
 
   return (
     <>

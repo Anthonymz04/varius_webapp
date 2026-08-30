@@ -3,11 +3,13 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Compass, Home as HomeIcon, MessageCircle, Plus, Users } from 'lucide-react';
+import { useAuth } from '@/lib/auth-context';
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const { user } = useAuth();
 
-  if (pathname === '/') return null;
+  if (pathname === '/' && !user) return null;
 
   return (
     <nav className="bottom-nav">
