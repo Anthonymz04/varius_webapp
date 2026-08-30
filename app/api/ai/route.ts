@@ -41,9 +41,10 @@ export async function POST(request: NextRequest) {
       apiKey: process.env.OPENAI_API_KEY,
       baseURL: process.env.OPENAI_BASE_URL || 'https://api.b.ai/v1',
     });
-    const response = await client.chat.completions.create({
-model: process.env.OPENAI_MODEL || 'deepseek-v4-flash',
+    const params = {
+      model: process.env.OPENAI_MODEL || 'deepseek-v4-flash',
       max_tokens: 2000,
+      thinking: { type: 'disabled' as const },
       messages: [
         {
           role: 'system',
@@ -51,8 +52,9 @@ model: process.env.OPENAI_MODEL || 'deepseek-v4-flash',
         },
         ...parsed.data.messages.map((message) => ({ role: message.role, content: message.content })),
       ],
-    });
-    const text = response.choices[0]?.message?.content?.trim() || (response.choices[0]?.message as { reasoning_content?: string })?.reasoning_content?.trim();
+    } as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming & { thinking?: { type: 'disabled' } };
+    const response = await client.chat.completions.create(params);
+    const text = response.choices[0]?.message?.content?.trim();
     if (!text) throw new Error('Empty response');
     return NextResponse.json({ message: text });
   } catch (error) {
