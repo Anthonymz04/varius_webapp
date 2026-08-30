@@ -37,9 +37,12 @@ export async function POST(request: NextRequest) {
   if (!process.env.OPENAI_API_KEY) return NextResponse.json({ error: 'El asistente no está configurado todavía. Añade OPENAI_API_KEY en .env.local.' }, { status: 503 });
 
   try {
-    const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const client = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+      baseURL: process.env.OPENAI_BASE_URL || 'https://api.b.ai/v1',
+    });
     const response = await client.chat.completions.create({
-      model: process.env.OPENAI_MODEL || 'gpt-4.1-mini',
+      model: process.env.OPENAI_MODEL || 'deepseek-v4-flash',
       max_tokens: 700,
       messages: [
         {
@@ -49,7 +52,7 @@ export async function POST(request: NextRequest) {
         ...parsed.data.messages.map((message) => ({ role: message.role, content: message.content })),
       ],
     });
-    const text = response.choices[0]?.message?.content?.trim();
+    const text = response.choices[0]?.message?.content?.trim() || (response.choices[0]?.message as { reasoning_content?: string })?.reasoning_content?.trim();
     if (!text) throw new Error('Empty response');
     return NextResponse.json({ message: text });
   } catch (error) {
