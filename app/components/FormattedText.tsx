@@ -44,15 +44,40 @@ export default function FormattedText({ text }: { text: string }) {
   };
 
   let key = 0;
+  let tableBuffer: string[] | null = null;
+  const flushTable = () => {
+    if (!tableBuffer || tableBuffer.length < 2) { tableBuffer = null; return; }
+    const rows = tableBuffer.slice(0); // skip separator row
+    const headerCells = rows[0].split('|').slice(1, -1).map((c) => c.trim());
+    const bodyRows = rows.slice(2).filter((r) => r.trim());
+    if (bodyRows.length === 0) { tableBuffer = null; return; }
+    blocks.push(
+      <table key={key} className="msg-table">
+        <thead>
+          <tr>{headerCells.map((h, i) => <th key={i}>{renderInline(h)}</th>)}</tr>
+        </thead>
+        <tbody>
+          {bodyRows.map((r, ri) => (
+            <tr key={ri}>{r.split('|').slice(1, -1).map((c, ci) => <td key={ci}>{renderInline(c.trim())}</td>)}</tr>
+          ))}
+        </tbody>
+      </table>
+    );
+    key += 1;
+    tableBuffer = null;
+  };
+
   for (const rawLine of text.split('\n')) {
     const line = rawLine.trim();
     if (!line) {
       key = flushList(key);
+      flushTable();
       continue;
     }
     const heading = line.match(/^(#{1,3})\s+(.*)$/);
     if (heading) {
       key = flushList(key);
+      flushTable();
       const level = heading[1].length;
       const content = renderInline(heading[2]);
       if (level === 1) blocks.push(<h3 key={key} className="msg-h">{content}</h3>);
@@ -61,9 +86,16 @@ export default function FormattedText({ text }: { text: string }) {
       key += 1;
       continue;
     }
+    if (line.startsWith('|')) {
+      key = flushList(key);
+      tableBuffer ??= [];
+      tableBuffer.push(line);
+      continue;
+    }
     const bullet = line.match(/^[-•*]\s+(.*)$/);
     const ordered = line.match(/^\d+[.)]\s+(.*)$/);
     if (bullet || ordered) {
+      flushTable();
       if (!list || list.ordered !== Boolean(ordered)) {
         key = flushList(key);
         list = { ordered: Boolean(ordered), items: [] };
@@ -71,11 +103,13 @@ export default function FormattedText({ text }: { text: string }) {
       list.items.push(bullet ? bullet[1] : ordered![1]);
     } else {
       key = flushList(key);
+      flushTable();
       blocks.push(<p key={key}>{renderInline(line)}</p>);
       key += 1;
     }
   }
   key = flushList(key);
+  flushTable();
 
   return <>{blocks}</>;
 }

@@ -876,6 +876,44 @@ h2 {
   font-weight: 700;
 }
 
+.message .msg-content .msg-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 8px 0;
+  font-size: 12px;
+}
+
+.message .msg-content .msg-table th,
+.message .msg-content .msg-table td {
+  border: 1px solid #ececec;
+  padding: 6px 8px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.message .msg-content .msg-table th {
+  font-weight: 700;
+  background: #faf7f8;
+}
+
+.message.ai .msg-content .msg-table th {
+  background: #f5f1f2;
+}
+
+.message.user .msg-content .msg-table {
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.message.user .msg-content .msg-table th,
+.message.user .msg-content .msg-table td {
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #fff;
+}
+
+.message.user .msg-content .msg-table th {
+  background: rgba(255, 255, 255, 0.12);
+}
+
 .message .msg-content ul,
 .message .msg-content ol {
   margin: 6px 0;
