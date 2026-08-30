@@ -57,9 +57,12 @@ NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
 NEXT_PUBLIC_FIREBASE_PROJECT_ID=
 NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
 NEXT_PUBLIC_FIREBASE_APP_ID=
-OPENAI_API_KEY=
+OPENAI_API_KEY=        # key de B.AI (sk-...)
+OPENAI_BASE_URL=       # https://api.b.ai/v1 (default si se omite)
+OPENAI_MODEL=          # deepseek-v4-flash (default si se omite)
 ```
 `lib/firebase/client.ts` expone `isFirebaseConfigured` — la app funciona sin Firebase mostrando el aviso "Firebase no está configurado".
+- **AI / chatbot**: usa el SDK de OpenAI apuntando a B.AI (OpenAI-compatible) en `app/api/ai/route.ts`. `baseURL` = `OPENAI_BASE_URL` o `https://api.b.ai/v1`; modelo = `OPENAI_MODEL` o `deepseek-v4-flash`. Si el modelo devuelve solo `reasoning_content` (modo thinking), se usa como fallback.
 
 ## Estructura
 ```
