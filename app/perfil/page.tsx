@@ -10,7 +10,7 @@ import { useMisSolicitudes } from '@/app/hooks/useMisSolicitudes';
 import { ProfileFields, UserRole, updateProfileFields, fetchUserProfile, UserProfile } from '@/lib/firebase/profile';
 import { HistoryItem, fetchHistory } from '@/lib/firebase/notifications';
 import { fetchConsultations } from '@/lib/firebase/consultations';
-import { uploadCover, uploadAvatar, uploadCertificate } from '@/lib/firebase/uploads';
+import { uploadCover, uploadAvatar, uploadCertificate, uploadCV } from '@/lib/firebase/uploads';
 import { AsesoriaRequest, createConversacion, fetchLawyerRequests, updateRequestStatus } from '@/lib/firebase/asesorias';
 import Skeleton from '@/app/components/Skeleton';
 import {
@@ -61,6 +61,7 @@ export default function PerfilPage() {
   const [verifyMsg, setVerifyMsg] = useState('');
   const [verifyPdf, setVerifyPdf] = useState<File | null>(null);
   const [verifyPdfUploading, setVerifyPdfUploading] = useState(false);
+  const [verifyCv, setVerifyCv] = useState<File | null>(null);
   const [lawyerRequests, setLawyerRequests] = useState<AsesoriaRequest[]>([]);
   const router = useRouter();
 
@@ -175,12 +176,6 @@ export default function PerfilPage() {
   const saveEdits = async () => {
     setSaving(true); setEditError('');
     try {
-      if (editRole === 'lawyer' && role !== 'lawyer') {
-        setEditing(false);
-        setVerifyMsg(''); setVerifyError('');
-        setVerifyOpen(true);
-        return;
-      }
       const fields: ProfileFields = {};
       if (editName.trim() && editName.trim() !== user.displayName) {
         fields.displayName = editName.trim();
@@ -245,6 +240,10 @@ export default function PerfilPage() {
         pdfUrl = await uploadCertificate(user.uid, verifyPdf, (p) => {});
         setVerifyPdfUploading(false);
       }
+      let cvUrl = '';
+      if (verifyCv) {
+        cvUrl = await uploadCV(user.uid, verifyCv, (p) => {});
+      }
       await submitLawyerVerification(user.uid, user.email ?? '', {
         fullName: user.displayName ?? '',
         registryNumber: verifyForm.registryNumber,
@@ -254,12 +253,13 @@ export default function PerfilPage() {
         price: verifyForm.price,
         cedula: verifyForm.cedula,
         certificadoURL: pdfUrl,
+        cvURL: cvUrl,
       });
       setVerification({
         uid: user.uid, fullName: user.displayName ?? '', email: user.email ?? '',
         registryNumber: verifyForm.registryNumber, university: verifyForm.university,
         yearsExperience: verifyForm.yearsExperience, bio: verifyForm.bio, price: verifyForm.price,
-        cedula: verifyForm.cedula, certificadoURL: pdfUrl,
+        cedula: verifyForm.cedula, certificadoURL: pdfUrl, cvURL: cvUrl,
         status: 'pendiente', createdAt: Date.now(), updatedAt: Date.now(),
       });
       setVerifyMsg('Solicitud enviada. Te notificaremos cuando un administrador la revise.');
@@ -341,9 +341,22 @@ export default function PerfilPage() {
               <select className="input-field" style={{ marginTop: 4 }} value={editRole} onChange={(e) => setEditRole(e.target.value as UserRole)}>
                 <option value="citizen">Ciudadano</option>
                 <option value="student">Estudiante</option>
-                <option value="lawyer">Abogado</option>
               </select>
             </label>
+            {role !== 'lawyer' && role !== 'admin' && (
+              <button
+                type="button"
+                className="chip"
+                style={{ alignSelf: 'flex-start' }}
+                onClick={() => {
+                  setEditing(false);
+                  setVerifyMsg(''); setVerifyError('');
+                  setVerifyOpen(true);
+                }}
+              >
+                <Award size={13} /> Solicitar ser abogado
+              </button>
+            )}
             {editRole === 'student' && (
               <>
                 <label style={{ fontSize: 12, color: '#888', fontWeight: 600 }}>Universidad
@@ -395,6 +408,11 @@ export default function PerfilPage() {
               {verification.certificadoURL && (
                 <p style={{ margin: '4px 0 0', fontSize: 12 }}>
                   <a href={verification.certificadoURL} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--wine)' }}>📄 Ver título subido</a>
+                </p>
+              )}
+              {verification.cvURL && (
+                <p style={{ margin: '4px 0 0', fontSize: 12 }}>
+                  <a href={verification.cvURL} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--wine)' }}>📋 Ver hoja de vida</a>
                 </p>
               )}
               {verification.status === 'rechazada' && (
@@ -540,6 +558,13 @@ export default function PerfilPage() {
                       <input type="file" accept=".pdf" style={{ display: 'none' }} onChange={(e) => setVerifyPdf(e.target.files?.[0] ?? null)} />
                     </label>
                     {verifyPdfUploading && <p style={{ fontSize: 11, color: '#999', margin: '4px 0' }}>Subiendo PDF…</p>}
+                  </div>
+                  <div style={{ fontSize: 12, color: '#888', fontWeight: 600, display: 'block', marginBottom: 10 }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: 12, border: '1px dashed var(--line)', borderRadius: 10 }}>
+                      <Upload size={16} />
+                      <span>{verifyCv ? verifyCv.name : 'Subir hoja de vida (PDF, opcional)'}</span>
+                      <input type="file" accept=".pdf" style={{ display: 'none' }} onChange={(e) => setVerifyCv(e.target.files?.[0] ?? null)} />
+                    </label>
                   </div>
                 </>
               )}

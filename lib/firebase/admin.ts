@@ -23,6 +23,7 @@ export async function fetchPendingVerifications(): Promise<LawyerVerification[]>
         price: (data.price as string) ?? '',
         cedula: (data.cedula as string) ?? '',
         certificadoURL: (data.certificadoURL as string) ?? '',
+        cvURL: (data.cvURL as string) ?? '',
         status: (data.status as LawyerVerification['status']) ?? 'pendiente',
         createdAt: typeof data.createdAt === 'number' ? data.createdAt : Date.now(),
         updatedAt: typeof data.updatedAt === 'number' ? data.updatedAt : Date.now(),
@@ -38,6 +39,7 @@ export async function approveVerification(v: LawyerVerification): Promise<void> 
     nationalId: v.cedula,
     cedula: v.cedula,
     certificateURL: v.certificadoURL,
+    cvURL: v.cvURL || null,
     updatedAt: Date.now(),
   }, { merge: true });
 
@@ -54,6 +56,9 @@ export async function approveVerification(v: LawyerVerification): Promise<void> 
     bio: v.bio || 'Abogado verificado por VARIUS.',
     education: v.university,
     experience: `${v.yearsExperience} años de experiencia`,
+    cedula: v.cedula,
+    certificadoURL: v.certificadoURL,
+    cvURL: v.cvURL || null,
     verified: true,
     createdAt: Date.now(),
   });

@@ -43,3 +43,7 @@ export function uploadAvatar(uid: string, file: File, onProgress?: (percent: num
 export function uploadCertificate(uid: string, file: File, onProgress?: (percent: number) => void) {
   return uploadFile(file, `certifications/${uid}/titulo.pdf`, onProgress);
 }
+
+export function uploadCV(uid: string, file: File, onProgress?: (percent: number) => void) {
+  return uploadFile(file, `cvs/${uid}/hoja-vida.pdf`, onProgress);
+}

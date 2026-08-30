@@ -98,8 +98,13 @@ export default function AdminPage() {
                 </div>
                 {v.bio && <p style={{ margin: '8px 0 0', fontSize: 12, color: '#666', lineHeight: 1.5 }}>{v.bio}</p>}
                 {v.certificadoURL && (
-                  <a href={v.certificadoURL} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 10, fontSize: 12, color: 'var(--wine)', fontWeight: 600 }}>
+                  <a href={v.certificadoURL} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 10, fontSize: 12, color: 'var(--wine)', fontWeight: 600, marginRight: 12 }}>
                     📄 Ver título de abogado (PDF)
+                  </a>
+                )}
+                {v.cvURL && (
+                  <a href={v.cvURL} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 10, fontSize: 12, color: 'var(--wine)', fontWeight: 600 }}>
+                    📋 Ver hoja de vida (PDF)
                   </a>
                 )}
                 <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>

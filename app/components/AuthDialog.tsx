@@ -10,9 +10,11 @@ import {
   signInWithEmailAndPassword,
   updateProfile,
 } from 'firebase/auth';
-import { Bot, Briefcase, Eye, EyeOff, GraduationCap, X } from 'lucide-react';
+import { Bot, Briefcase, Eye, EyeOff, GraduationCap, Upload, X } from 'lucide-react';
 import { auth, db, isFirebaseConfigured } from '@/lib/firebase/client';
-import { UserRole, createProfile } from '@/lib/firebase/profile';
+import { UserRole, createProfile, updateProfileFields } from '@/lib/firebase/profile';
+import { submitLawyerVerification } from '@/lib/firebase/verification';
+import { uploadCertificate, uploadCV } from '@/lib/firebase/uploads';
 
 interface AuthDialogProps {
   user: User | null;
@@ -39,6 +41,12 @@ export default function AuthDialog({ user, close }: AuthDialogProps) {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [cedula, setCedula] = useState('');
+  const [registryNumber, setRegistryNumber] = useState('');
+  const [university, setUniversity] = useState('');
+  const [yearsExperience, setYearsExperience] = useState('');
+  const [pdfTitle, setPdfTitle] = useState<File | null>(null);
+  const [cvFile, setCvFile] = useState<File | null>(null);
 
   const ensureProfile = async (activeUser: User, chosenRole: UserRole) =>
     createProfile({
@@ -72,14 +80,35 @@ export default function AuthDialog({ user, close }: AuthDialogProps) {
       if (mode === 'register') {
         const result = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(result.user, { displayName: name });
-        await ensureProfile(result.user, role);
+        if (role === 'lawyer') {
+          if (!pdfTitle) throw new Error('El título de abogado en PDF es obligatorio.');
+          const certificadoURL = await uploadCertificate(result.user.uid, pdfTitle);
+          const cvURL = cvFile ? await uploadCV(result.user.uid, cvFile) : '';
+          await submitLawyerVerification(result.user.uid, email, {
+            fullName: name,
+            cedula,
+            registryNumber,
+            university,
+            yearsExperience,
+            bio: '',
+            price: '',
+            certificadoURL,
+            cvURL,
+          });
+          await createProfile({ uid: result.user.uid, name, email, photoURL: null, role: 'citizen' });
+        } else {
+          await ensureProfile(result.user, role);
+        }
       } else {
         await signInWithEmailAndPassword(auth, email, password);
       }
       close();
     } catch (caught) {
       const code = (caught as { code?: string }).code;
-      if (mode === 'login' && code && auth && email) {
+      const message = (caught as { message?: string }).message;
+      if (message === 'El título de abogado en PDF es obligatorio.') {
+        setError(message);
+      } else if (mode === 'login' && code && auth && email) {
         try {
           const methods = await fetchSignInMethodsForEmail(auth, email);
           if (methods.includes('google.com') && !methods.includes('password')) {
@@ -201,6 +230,50 @@ export default function AuthDialog({ user, close }: AuthDialogProps) {
                 <option value="student">Estudiante</option>
                 <option value="lawyer">Abogado</option>
               </select>
+              {role === 'lawyer' && (
+                <>
+                  <input
+                    required
+                    placeholder="Número de cédula (10 dígitos)"
+                    value={cedula}
+                    onChange={(e) => setCedula(e.target.value)}
+                  />
+                  <input
+                    placeholder="Registro (Consejo de la Judicatura)"
+                    value={registryNumber}
+                    onChange={(e) => setRegistryNumber(e.target.value)}
+                  />
+                  <input
+                    placeholder="Universidad"
+                    value={university}
+                    onChange={(e) => setUniversity(e.target.value)}
+                  />
+                  <input
+                    placeholder="Años de experiencia"
+                    value={yearsExperience}
+                    onChange={(e) => setYearsExperience(e.target.value)}
+                  />
+                  <label style={{ fontSize: 12, color: '#888', fontWeight: 600, display: 'block', marginBottom: 8, marginTop: 4 }}>
+                    Título de abogado (PDF) *
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: 10, border: '1px dashed var(--line)', borderRadius: 10, fontSize: 12, fontWeight: 400, marginTop: 4 }}>
+                      <Upload size={16} />
+                      <span>{pdfTitle ? pdfTitle.name : 'Seleccionar archivo PDF'}</span>
+                      <input type="file" accept=".pdf" style={{ display: 'none' }} onChange={(e) => setPdfTitle(e.target.files?.[0] ?? null)} />
+                    </label>
+                  </label>
+                  <label style={{ fontSize: 12, color: '#888', fontWeight: 600, display: 'block', marginBottom: 8 }}>
+                    Hoja de vida (PDF, opcional)
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: 10, border: '1px dashed var(--line)', borderRadius: 10, fontSize: 12, fontWeight: 400, marginTop: 4 }}>
+                      <Upload size={16} />
+                      <span>{cvFile ? cvFile.name : 'Seleccionar archivo PDF'}</span>
+                      <input type="file" accept=".pdf" style={{ display: 'none' }} onChange={(e) => setCvFile(e.target.files?.[0] ?? null)} />
+                    </label>
+                  </label>
+                  <p style={{ fontSize: 11, color: '#8c1044', background: '#fdf1f6', borderRadius: 8, padding: '10px 12px', margin: 0 }}>
+                    Tu solicitud será revisada por un administrador antes de activar tu rol de abogado.
+                  </p>
+                </>
+              )}
             </>
           )}
           <input
@@ -231,7 +304,11 @@ export default function AuthDialog({ user, close }: AuthDialogProps) {
           {error && <p className="auth-error">{error}</p>}
           <button
             className="primary"
-            disabled={busy || !isFirebaseConfigured}
+            disabled={
+              busy ||
+              !isFirebaseConfigured ||
+              (mode === 'register' && role === 'lawyer' && (!pdfTitle || !cedula.trim()))
+            }
           >
             {busy
               ? 'Procesando…'
