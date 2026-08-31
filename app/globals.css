@@ -3046,7 +3046,7 @@ h2 {
   background: #21181a77;
   backdrop-filter: blur(5px);
   display: grid;
-  place-items: center;
+  overflow-y: auto;
   padding: 20px;
   z-index: 100000;
 }
