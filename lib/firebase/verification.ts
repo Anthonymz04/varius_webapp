@@ -1,7 +1,8 @@
 'use client';
 
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, setDoc, where } from 'firebase/firestore';
 import { db } from './client';
+import { addHistory, createNotification } from './notifications';
 
 export type VerificationStatus = 'pendiente' | 'aprobada' | 'rechazada';
 
@@ -57,6 +58,22 @@ export async function submitLawyerVerification(
     createdAt: now,
     updatedAt: now,
   });
+  const admins = await getDocs(query(collection(db, 'users'), where('role', '==', 'admin')));
+  await Promise.all([
+    ...admins.docs.map((a) =>
+      createNotification(
+        a.id,
+        uid,
+        'cuenta',
+        'Nueva verificación pendiente',
+        `${input.fullName.trim()} solicitó verificación de abogado. Revisala en el panel /admin.`
+      )
+    ),
+    ...admins.docs.map((a) =>
+      addHistory(a.id, 'cuenta', `Recibió solicitud de verificación de ${input.fullName.trim()}`)
+    ),
+    addHistory(uid, 'cuenta', 'Envió solicitud de verificación de abogado'),
+  ]);
 }
 
 export async function fetchLawyerVerification(uid: string): Promise<LawyerVerification | null> {

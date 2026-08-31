@@ -1,6 +1,6 @@
 'use client';
 
-import { collection, doc, getDocs, query, setDoc, updateDoc, where } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import { addHistory, createNotification } from '@/lib/firebase/notifications';
 import { LawyerVerification } from '@/lib/firebase/verification';
@@ -29,11 +29,13 @@ export async function fetchPendingVerifications(): Promise<LawyerVerification[]>
         updatedAt: typeof data.updatedAt === 'number' ? data.updatedAt : Date.now(),
       };
     });
-  } catch { return []; }
+  } catch (e) { console.error('fetchPendingVerifications:', e); return []; }
 }
 
-export async function approveVerification(v: LawyerVerification): Promise<void> {
+export async function approveVerification(v: LawyerVerification, adminUid: string, adminName: string): Promise<void> {
   if (!db) throw new Error('Firebase no está configurado.');
+  const admin = await getDoc(doc(db, 'users', adminUid));
+  const adminName_ = admin.exists() ? (admin.data().name as string) || adminName : adminName;
   await setDoc(doc(db, 'users', v.uid), {
     role: 'lawyer',
     nationalId: v.cedula,
@@ -68,14 +70,16 @@ export async function approveVerification(v: LawyerVerification): Promise<void> 
   await Promise.all([
     createNotification(v.uid, v.uid, 'cuenta', 'Verificación aprobada', 'Tu perfil de abogado fue aprobado. Ya apareces en el marketplace.'),
     addHistory(v.uid, 'cuenta', 'Verificación de abogado aprobada'),
+    addHistory(adminUid, 'cuenta', `Aprobó la verificación de ${v.fullName} (revisada por ${adminName_})`),
   ]);
 }
 
-export async function rejectVerification(uid: string): Promise<void> {
+export async function rejectVerification(uid: string, fullName: string, adminUid: string): Promise<void> {
   if (!db) throw new Error('Firebase no está configurado.');
   await updateDoc(doc(db, 'lawyer_verifications', uid), { status: 'rechazada', updatedAt: Date.now() });
   await Promise.all([
     createNotification(uid, uid, 'cuenta', 'Verificación rechazada', 'Tu solicitud de verificación fue rechazada. Corrige tus datos y vuelve a enviarla.'),
     addHistory(uid, 'cuenta', 'Verificación de abogado rechazada'),
+    addHistory(adminUid, 'cuenta', `Rechazó la verificación de ${fullName}`),
   ]);
 }

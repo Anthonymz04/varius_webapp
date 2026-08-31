@@ -104,6 +104,7 @@ export default function AuthDialog({ user, close }: AuthDialogProps) {
       }
       close();
     } catch (caught) {
+      console.error('auth submit:', caught);
       const code = (caught as { code?: string }).code;
       const message = (caught as { message?: string }).message;
       if (message === 'El título de abogado en PDF es obligatorio.') {

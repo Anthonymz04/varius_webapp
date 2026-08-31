@@ -44,9 +44,10 @@ export default function AdminPage() {
   }
 
   const handleApprove = async (v: LawyerVerification) => {
+    if (!user) return;
     setBusyId(v.uid); setMsg('');
     try {
-      await approveVerification(v);
+      await approveVerification(v, user.uid, user.displayName ?? '');
       setItems((prev) => prev.filter((x) => x.uid !== v.uid));
       setMsg(`${v.fullName} fue aprobado y ya aparece en el marketplace.`);
     } catch { setMsg('No se pudo completar la aprobación.'); }
@@ -54,9 +55,10 @@ export default function AdminPage() {
   };
 
   const handleReject = async (v: LawyerVerification) => {
+    if (!user) return;
     setBusyId(v.uid); setMsg('');
     try {
-      await rejectVerification(v.uid);
+      await rejectVerification(v.uid, v.fullName, user.uid);
       setItems((prev) => prev.filter((x) => x.uid !== v.uid));
       setMsg(`${v.fullName} fue rechazado.`);
     } catch { setMsg('No se pudo rechazar la solicitud.'); }

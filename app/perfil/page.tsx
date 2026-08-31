@@ -263,7 +263,7 @@ export default function PerfilPage() {
         status: 'pendiente', createdAt: Date.now(), updatedAt: Date.now(),
       });
       setVerifyMsg('Solicitud enviada. Te notificaremos cuando un administrador la revise.');
-    } catch { setVerifyError('No se pudo enviar la solicitud. Inténtalo de nuevo.'); }
+    } catch (e) { console.error('submitVerify:', e); setVerifyError('No se pudo enviar la solicitud. Inténtalo de nuevo.'); }
     finally { setVerifySaving(false); setVerifyPdfUploading(false); }
   };
 

@@ -12,7 +12,7 @@ import {
   updateDoc,
   where,
 } from 'firebase/firestore';
-import { db } from '@/lib/firebase/client';
+import { db, auth } from '@/lib/firebase/client';
 
 const NOTIFICATIONS = 'notifications';
 const HISTORY = 'actionHistory';
@@ -47,12 +47,13 @@ export async function createNotification(
   body: string
 ): Promise<void> {
   if (!db) return;
-  await addDoc(collection(db, NOTIFICATIONS), { userId: recipientUid, actorId: actorUid, type, title, body, read: false, createdAt: Date.now() });
+  await addDoc(collection(db, NOTIFICATIONS), { userId: recipientUid, actorId: auth?.currentUser?.uid ?? actorUid, type, title, body, read: false, createdAt: Date.now() });
 }
 
 export async function addHistory(uid: string, type: NotificationType, title: string): Promise<void> {
   if (!db) return;
-  await addDoc(collection(db, HISTORY), { userId: uid, type, title, createdAt: Date.now() });
+  const actor = auth?.currentUser?.uid ?? uid;
+  await addDoc(collection(db, HISTORY), { userId: uid, type, title, createdAt: Date.now(), actorId: actor });
 }
 
 export async function fetchHistory(uid: string): Promise<HistoryItem[]> {
