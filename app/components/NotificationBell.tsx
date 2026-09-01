@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Bell, CheckCheck, Trash2 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import {
@@ -27,6 +28,7 @@ export default function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<AppNotification[]>([]);
   const ref = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   useEffect(() => {
     if (!user) {
@@ -48,6 +50,15 @@ export default function NotificationBell() {
   if (!user) return null;
 
   const unread = items.filter((n) => !n.read).length;
+
+  const navigateTo = (n: AppNotification) => {
+    setOpen(false);
+    switch (n.type) {
+      case 'asesoria': router.push('/mensajes'); break;
+      case 'tutoria': router.push('/perfil'); break;
+      default: router.push('/perfil');
+    }
+  };
 
   const toggle = () => {
     const next = !open;
@@ -81,7 +92,12 @@ export default function NotificationBell() {
           ) : (
             <ul>
               {items.map((n) => (
-                <li key={n.id} className={n.read ? '' : 'unread'}>
+                <li
+                  key={n.id}
+                  className={n.read ? '' : 'unread'}
+                  onClick={() => navigateTo(n)}
+                  style={{ cursor: 'pointer' }}
+                >
                   <div>
                     <b>{n.title}</b>
                     <p>{n.body}</p>

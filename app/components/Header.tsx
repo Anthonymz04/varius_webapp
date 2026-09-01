@@ -81,7 +81,7 @@ export default function Header() {
     <>
       <header>
         <Link className="brand" href="/">
-          <span>V</span> VARIUS
+          <img src="/icons/icon-192.png" alt="VARIUS" style={{ width: 28, height: 28, borderRadius: 8 }} /> VARIUS
         </Link>
 
         {/* Search bar with dropdown (Platzi / Pichincha style) */}
