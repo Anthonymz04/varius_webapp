@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { ExternalLink, Search } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Search } from 'lucide-react';
 
 interface Resource {
   title: string;
@@ -160,7 +160,7 @@ function BibliotecaContent() {
 
   return (
     <section className="library-page">
-      <Link href="/" className="back">← Volver al inicio</Link>
+      <Link href="/" className="back" aria-label="Volver al inicio"><ArrowLeft size={16} /></Link>
       <p className="eyebrow">BIBLIOTECA JURÍDICA</p>
       <h1>Recursos legales de Ecuador</h1>
       <p className="lead">

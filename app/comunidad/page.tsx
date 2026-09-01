@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Heart, MessageCircle, Send, X } from 'lucide-react';
+import { ArrowLeft, Heart, MessageCircle, Send, X } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import AuthDialog from '@/app/components/AuthDialog';
 import Skeleton from '@/app/components/Skeleton';
@@ -131,7 +131,7 @@ export default function ComunidadPage() {
 
   return (
     <section className="community-page">
-      <Link href="/" className="back">← Volver al inicio</Link>
+      <Link href="/" className="back" aria-label="Volver al inicio"><ArrowLeft size={16} /></Link>
       <p className="eyebrow">COMUNIDAD VARIUS</p>
       <h1>Conecta con la comunidad jurídica</h1>
       <p className="lead">

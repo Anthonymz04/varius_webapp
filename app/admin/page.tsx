@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Award, Check, ShieldCheck, Trash2, X } from 'lucide-react';
+import { ArrowLeft, Award, Check, ShieldCheck, Trash2, X } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { LawyerVerification } from '@/lib/firebase/verification';
 import { approveVerification, fetchAllUsers, fetchPendingVerifications, deleteUserData, rejectVerification } from '@/lib/firebase/admin';
@@ -83,7 +83,7 @@ export default function AdminPage() {
 
   return (
     <section style={{ maxWidth: 820, margin: '0 auto', padding: '32px 20px 60px' }}>
-      <Link href="/" className="back">← Volver al inicio</Link>
+      <Link href="/" className="back" aria-label="Volver al inicio"><ArrowLeft size={16} /></Link>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '8px 0 20px' }}>
         <ShieldCheck size={22} style={{ color: 'var(--wine)' }} />
         <h1 style={{ margin: 0, fontSize: 22, fontFamily: 'var(--font-manrope)' }}>Panel de administración</h1>

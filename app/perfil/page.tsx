@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Award, CalendarDays, Camera, Check, FileText, GraduationCap, History, LogOut, Pencil, ShieldCheck, Upload, X } from 'lucide-react';
+import { ArrowLeft, Award, CalendarDays, Camera, Check, FileText, GraduationCap, History, LogOut, Pencil, ShieldCheck, Upload, X } from 'lucide-react';
 import { updateProfile as updateAuthProfile } from 'firebase/auth';
 import { useAuth } from '@/lib/auth-context';
 import { useMisSolicitudes } from '@/app/hooks/useMisSolicitudes';
@@ -272,7 +272,7 @@ export default function PerfilPage() {
 
   return (
     <section className="profile-page">
-      <Link href="/" className="back">← Volver al inicio</Link>
+      <Link href="/" className="back" aria-label="Volver al inicio"><ArrowLeft size={16} /></Link>
 
       {coverUrl && (
         <div style={{ width: '100%', height: 140, borderRadius: 12, overflow: 'hidden', marginBottom: 16, position: 'relative', background: '#f5f0f1' }}>
@@ -288,7 +288,7 @@ export default function PerfilPage() {
       <div className="profile-header">
         <div className="profile-avatar" style={{ position: 'relative' }}>
           {avatarUrl ? <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} /> : initials}
-          <label style={{ position: 'absolute', bottom: 0, right: 0, background: 'var(--wine)', color: '#fff', borderRadius: '50%', width: 24, height: 24, display: 'grid', placeItems: 'center', cursor: 'pointer' }}>
+          <label style={{ position: 'absolute', bottom: 0, right: 0, background: '#6b6566', color: '#fff', borderRadius: '50%', width: 24, height: 24, display: 'grid', placeItems: 'center', cursor: 'pointer' }}>
             <Camera size={12} />
             <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAvatarUpload} disabled={avatarUploading} />
           </label>

@@ -449,15 +449,16 @@ function Dashboard() {
             const Icon = a.icon;
             if (a.action === 'menu') {
               return (
-                <button
+                <Link
                   key={a.title}
                   className="action-card action-card-button"
-                  aria-label="Abrir menú"
-                  onClick={() => window.dispatchEvent(new CustomEvent('varius:toggle-menu'))}
+                  aria-label="Configuración"
+                  href="/configuracion"
+                  style={{ textDecoration: 'none', color: 'inherit' }}
                 >
                   <Icon size={20} />
                   <b>{a.title}</b>
-                </button>
+                </Link>
               );
             }
             return (

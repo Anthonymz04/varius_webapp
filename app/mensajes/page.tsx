@@ -109,7 +109,7 @@ function ChatInner() {
   return (
     <section className="mensajes-page">
       <div className="mensajes-head">
-        <Link href="/" className="back">← Volver al inicio</Link>
+        <Link href="/" className="back" aria-label="Volver al inicio"><ArrowLeft size={16} /></Link>
         <h1>Mis asesorías</h1>
       </div>
 

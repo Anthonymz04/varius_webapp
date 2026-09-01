@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { CheckCircle2, MapPin, Search, Star, X, Calendar, Clock, Award } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, MapPin, Search, Star, X, Calendar, Clock, Award } from 'lucide-react';
 import LawyerCard from '@/app/components/LawyerCard';
 import AuthDialog from '@/app/components/AuthDialog';
 import type { LawyerData } from '@/app/components/LawyerCard';
@@ -77,7 +77,7 @@ function AbogadosContent() {
 
   return (
     <section className="marketplace">
-      <Link href="/" className="back">← Volver al inicio</Link>
+      <Link href="/" className="back" aria-label="Volver al inicio"><ArrowLeft size={16} /></Link>
       <p className="eyebrow">MARKETPLACE JURÍDICO</p>
       <h1>Encuentra a tu abogado ideal</h1>
       <p className="lead">Profesionales verificados en Ecuador, listos para orientarte.</p>

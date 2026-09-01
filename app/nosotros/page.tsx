@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 
 export default function NosotrosPage() {
   return (
     <section className="faq-page">
-      <Link href="/" className="back">← Volver al inicio</Link>
+      <Link href="/" className="back" aria-label="Volver al inicio"><ArrowLeft size={16} /></Link>
       <p className="eyebrow">SOBRE NOSOTROS</p>
       <h1>Conoce VARIUS</h1>
       <p className="lead" style={{ maxWidth: '600px' }}>

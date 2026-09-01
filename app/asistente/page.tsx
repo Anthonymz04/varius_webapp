@@ -37,6 +37,7 @@ function AsistenteChat() {
   const [savingBanner, setSavingBanner] = useState(false);
   const [lawyers, setLawyers] = useState<Lawyer[]>([]);
   const [lawyerModal, setLawyerModal] = useState(false);
+  const startedAsGuest = useRef(false);
   const chatBodyRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -59,7 +60,7 @@ function AsistenteChat() {
   };
 
   const showSaveBanner =
-    !!user && !activeId && messages.some((m) => m.from === 'user');
+    !!user && startedAsGuest.current && !activeId && messages.some((m) => m.from === 'user');
 
   useEffect(() => {
     const el = chatBodyRef.current;
@@ -119,6 +120,8 @@ function AsistenteChat() {
   const handleSendPrompt = async (questionText: string) => {
     const question = questionText.trim();
     if (!question || isSending) return;
+
+    if (!user) startedAsGuest.current = true;
 
     const next: Message[] = [...messages, { from: 'user', text: question }];
     setMessages(next);

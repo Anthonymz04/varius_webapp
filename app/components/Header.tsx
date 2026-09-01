@@ -19,24 +19,12 @@ const popularSearches = [
 
 export default function Header() {
   const { user, loading, signOut } = useAuth();
-  const [menu, setMenu] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const searchRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const pathname = usePathname();
-
-  useEffect(() => {
-    const toggleMenu = () => setMenu((m) => !m);
-    window.addEventListener('varius:toggle-menu', toggleMenu);
-    return () => window.removeEventListener('varius:toggle-menu', toggleMenu);
-  }, []);
-
-  const handleLogout = async () => {
-    setMenu(false);
-    await signOut();
-  };
 
   const navLinks = [
     { href: '/abogados', label: 'Abogados' },
@@ -240,71 +228,16 @@ export default function Header() {
             </button>
           )}
 
-          <button className="mobile-menu" onClick={() => setMenu(!menu)}>
-            {menu ? <X /> : <Menu />}
-          </button>
+          <Link
+            href="/configuracion"
+            className="mobile-menu"
+            aria-label="Configuración"
+            style={{ display: 'grid', placeItems: 'center' }}
+          >
+            <Settings size={20} />
+          </Link>
         </div>
       </header>
-
-      {menu && (
-        <nav className="mobile-nav">
-          <Link className="mn-profile" href="/perfil" onClick={() => setMenu(false)}>
-            <span className="mn-avatar">{initials}</span>
-            <span>
-              <b>{user?.displayName || 'Mi perfil'}</b>
-              <small>{user ? (user.email ?? 'Cuenta VARIUS') : 'Inicia sesión para continuar'}</small>
-            </span>
-          </Link>
-
-          <div className="mn-section">ACTIVIDAD</div>
-          <Link className="mn-item" href="/mensajes" onClick={() => setMenu(false)}>
-            <MessageCircle size={17} /> Asesorías activas
-          </Link>
-          <Link className="mn-item" href="/perfil" onClick={() => setMenu(false)}>
-            <Settings size={17} /> Configuración de cuenta
-          </Link>
-
-          <div className="mn-section">VARIUS</div>
-          <Link className="mn-item" href="/nosotros" onClick={() => setMenu(false)}>
-            <BookOpen size={17} /> Misión y visión
-          </Link>
-          <Link className="mn-item" href="/nosotros" onClick={() => setMenu(false)}>
-            <Mail size={17} /> Contáctanos
-          </Link>
-
-          <div className="mn-section">AYUDA</div>
-          <Link className="mn-item" href="/preguntas-frecuentes" onClick={() => setMenu(false)}>
-            <HelpCircle size={17} /> Preguntas frecuentes
-          </Link>
-          <Link className="mn-item" href="/asistente" onClick={() => setMenu(false)}>
-            <User size={17} /> Soporte con IA
-          </Link>
-
-          <div className="mn-section">SÍGUENOS</div>
-          <div className="mn-socials">
-            <a href="https://instagram.com/varius_legal" target="_blank" rel="noopener noreferrer"><Instagram size={18} /></a>
-            <a href="https://tiktok.com/@varius_legal" target="_blank" rel="noopener noreferrer"><Music2 size={18} /></a>
-            <a href="https://youtube.com/@varius_legal" target="_blank" rel="noopener noreferrer"><Youtube size={18} /></a>
-          </div>
-
-          {!user && (
-            <div className="mn-sep" />
-          )}
-          {!user && (
-            <button className="mn-logout" onClick={() => { setMenu(false); setAuthOpen(true); }}>
-              Acceder
-            </button>
-          )}
-          {user && (
-            <>
-              <div className="mn-sep" />
-              <button className="mn-logout" onClick={handleLogout}>
-                <LogOut size={16} /> Cerrar sesión
-              </button>
-            </>
-          )}
-        </nav>
-      )}
 
       {authOpen && <AuthDialog user={user} close={() => setAuthOpen(false)} />}
     </>

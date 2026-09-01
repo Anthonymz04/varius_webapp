@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { BookOpen, Calendar, CheckCircle2, Clock, Scale, Shield, Users, X } from 'lucide-react';
+import { ArrowLeft, BookOpen, Calendar, CheckCircle2, Clock, Scale, Shield, Users, X } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import AuthDialog from '@/app/components/AuthDialog';
 import { Tutorialia, crearReserva, getTutorias } from '@/lib/firebase/tutorias';
@@ -59,7 +59,7 @@ export default function TutoriasPage() {
 
   return (
     <section className="tutorials-page">
-      <Link href="/" className="back">← Volver al inicio</Link>
+      <Link href="/" className="back" aria-label="Volver al inicio"><ArrowLeft size={16} /></Link>
       <p className="eyebrow">TUTORÍAS Y GUÍAS</p>
       <h1>Aprende Derecho de forma práctica</h1>
       <p className="lead">

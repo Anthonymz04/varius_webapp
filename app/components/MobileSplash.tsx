@@ -55,25 +55,25 @@ export default function MobileSplash() {
   useEffect(() => {
     if (phase !== 'splash') return;
     splashStart.current = Date.now();
-    const t = setTimeout(() => setPhase('none'), 1500);
+    const t = setTimeout(() => setPhase('none'), 2400);
     return () => clearTimeout(t);
   }, [phase]);
 
   useEffect(() => {
     if (phase !== 'splash' || loading || !user) return;
     const elapsed = Date.now() - splashStart.current;
-    const t = setTimeout(() => setPhase('none'), Math.max(0, 1200 - elapsed));
+    const t = setTimeout(() => setPhase('none'), Math.max(0, 2000 - elapsed));
     return () => clearTimeout(t);
   }, [phase, loading, user]);
 
   useEffect(() => {
     if (phase !== 'splash' || loading || user) return;
     const elapsed = Date.now() - splashStart.current;
-    if (elapsed >= 1200) {
+    if (elapsed >= 2000) {
       setPhase('welcome');
       return;
     }
-    const t = setTimeout(() => setPhase('welcome'), 1200 - elapsed);
+    const t = setTimeout(() => setPhase('welcome'), 2000 - elapsed);
     return () => clearTimeout(t);
   }, [phase, loading, user]);
 

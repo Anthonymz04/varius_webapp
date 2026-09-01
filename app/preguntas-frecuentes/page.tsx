@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, ChevronDown } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ChevronDown } from 'lucide-react';
 
 interface FAQItem {
   question: string;
@@ -73,7 +73,7 @@ export default function PreguntasFrecuentesPage() {
 
   return (
     <section className="faq-page">
-      <Link href="/" className="back">← Volver al inicio</Link>
+      <Link href="/" className="back" aria-label="Volver al inicio"><ArrowLeft size={16} /></Link>
       <p className="eyebrow">PREGUNTAS FRECUENTES</p>
       <h1>Dudas legales comunes en Ecuador</h1>
       <p className="lead">
