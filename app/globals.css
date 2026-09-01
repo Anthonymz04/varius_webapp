@@ -318,6 +318,124 @@ header {
 }
 
 /* ===================================================================
+   PÁGINA DE CONFIGURACIÓN
+   =================================================================== */
+.cfg-page {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 24px 20px 60px;
+}
+
+.cfg-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.cfg-head .back {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #f5f0f1;
+  color: #6b6566;
+  display: grid;
+  place-items: center;
+  text-decoration: none;
+}
+
+.cfg-head h1 {
+  margin: 0;
+  font-size: 20px;
+  font-family: var(--font-manrope);
+}
+
+.cfg-profile {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+  margin-bottom: 8px;
+}
+
+.cfg-profile .mn-avatar {
+  width: 44px;
+  height: 44px;
+  font-size: 14px;
+}
+
+.cfg-profile-text b {
+  display: block;
+  font-size: 14px;
+}
+
+.cfg-profile-text small {
+  display: block;
+  font-size: 11px;
+  color: #888;
+  margin-top: 2px;
+}
+
+.cfg-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  text-decoration: none;
+  color: inherit;
+  margin-bottom: 8px;
+}
+
+.cfg-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #f5f0f1;
+  color: #6b6566;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.cfg-text b {
+  display: block;
+  font-size: 13px;
+}
+
+.cfg-text small {
+  display: block;
+  font-size: 11px;
+  color: #888;
+  margin-top: 2px;
+}
+
+.cfg-socials {
+  padding: 8px 2px 10px;
+}
+
+.cfg-logout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 13px;
+  border: 1px solid var(--wine);
+  border-radius: 12px;
+  color: var(--wine);
+  font-size: 13px;
+  font-weight: 600;
+  background: #fff;
+  margin-top: 8px;
+}
+
+/* ===================================================================
    BOTTOM NAV (mobile)
    =================================================================== */
 .bottom-nav {
