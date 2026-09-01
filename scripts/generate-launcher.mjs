@@ -4,7 +4,6 @@ import path from 'path';
 
 const mipmapDir = path.resolve('android/app/src/main/res');
 const iconSrc = path.resolve('public/icon.svg');
-const maskableSrc = path.resolve('public/icons/maskable-icon.svg');
 
 const folders = readdirSync(mipmapDir, { withFileTypes: true })
   .filter((e) => e.isDirectory() && e.name.startsWith('mipmap-') && !e.name.includes('anydpi'))
@@ -19,7 +18,7 @@ for (const folder of folders) {
 
   const fg = path.join(folder, 'ic_launcher_foreground.png');
   const fgMeta = await sharp(fg).metadata();
-  await sharp(maskableSrc).resize(fgMeta.width, fgMeta.height).png().toFile(fg);
+  await sharp(iconSrc).resize(fgMeta.width, fgMeta.height).png().toFile(fg);
 
   console.log(`updated ${path.basename(folder)} launcher=${launcherMeta.width} foreground=${fgMeta.width}`);
 }

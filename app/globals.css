@@ -187,6 +187,7 @@ header {
 
 .mobile-menu {
   display: none;
+  color: #6b6566;
 }
 
 /* ===================================================================
@@ -3966,8 +3967,14 @@ select.select-field:focus {
   }
 
   .notif-panel {
+    position: fixed;
+    top: 74px;
     right: 10px;
-    width: min(340px, calc(100vw - 20px));
+    left: 10px;
+    width: auto;
+    max-width: 340px;
+    margin-left: auto;
+    margin-right: auto;
   }
 
   .bottom-nav {

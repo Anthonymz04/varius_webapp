@@ -110,12 +110,9 @@ export default function ConfiguracionPage() {
                 ¿Estás seguro de que quieres cerrar tu sesión en VARIUS? Podrás volver a iniciar sesión cuando quieras.
               </p>
             </div>
-            <div className="lawyer-modal-footer" style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+            <div className="lawyer-modal-footer" style={{ display: 'flex', justifyContent: 'center' }}>
               <button className="landing-btn primary compact" onClick={handleLogout}>
                 <LogOut size={14} /> Cerrar sesión
-              </button>
-              <button className="landing-btn secondary compact" onClick={() => setConfirmLogout(false)}>
-                Cancelar
               </button>
             </div>
           </div>

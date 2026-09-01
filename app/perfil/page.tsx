@@ -63,6 +63,7 @@ export default function PerfilPage() {
   const [verifyPdfUploading, setVerifyPdfUploading] = useState(false);
   const [verifyCv, setVerifyCv] = useState<File | null>(null);
   const [lawyerRequests, setLawyerRequests] = useState<AsesoriaRequest[]>([]);
+  const [confirmLogout, setConfirmLogout] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -519,7 +520,27 @@ export default function PerfilPage() {
           </button>
         </Link>
       )}
-      <button className="profile-logout" onClick={async () => { await signOut(); }}><LogOut size={17} /> Cerrar sesión</button>
+      <button className="profile-logout" onClick={() => setConfirmLogout(true)}><LogOut size={17} /> Cerrar sesión</button>
+
+      {confirmLogout && (
+        <div className="dialog-bg" onClick={() => setConfirmLogout(false)}>
+          <div className="lawyer-modal" style={{ maxWidth: 360, textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+            <button className="close-btn" onClick={() => setConfirmLogout(false)}><X size={18} /></button>
+            <div className="lawyer-modal-body">
+              <LogOut size={28} style={{ color: 'var(--wine)', margin: '0 auto 12px' }} />
+              <h2 style={{ fontSize: 18, marginBottom: 6 }}>¿Cerrar sesión?</h2>
+              <p style={{ fontSize: 13, color: '#777', margin: 0 }}>
+                ¿Estás seguro de que quieres cerrar tu sesión en VARIUS? Podrás volver a iniciar sesión cuando quieras.
+              </p>
+            </div>
+            <div className="lawyer-modal-footer" style={{ display: 'flex', justifyContent: 'center' }}>
+              <button className="landing-btn primary compact" onClick={async () => { await signOut(); }}>
+                <LogOut size={14} /> Cerrar sesión
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {verifyOpen && (
         <div className="dialog-bg" onClick={() => setVerifyOpen(false)}>
