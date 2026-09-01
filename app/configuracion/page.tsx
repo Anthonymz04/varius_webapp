@@ -14,6 +14,7 @@ import {
   Settings,
   User,
   Users,
+  X,
   Youtube,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
@@ -24,6 +25,7 @@ export default function ConfiguracionPage() {
   const { user, signOut } = useAuth();
   const router = useRouter();
   const [authOpen, setAuthOpen] = useState(false);
+  const [confirmLogout, setConfirmLogout] = useState(false);
 
   const initials = user?.displayName
     ?.split(' ')
@@ -33,6 +35,7 @@ export default function ConfiguracionPage() {
     .toUpperCase() || '?';
 
   const handleLogout = async () => {
+    setConfirmLogout(false);
     await signOut();
     router.push('/');
   };
@@ -85,7 +88,7 @@ export default function ConfiguracionPage() {
 
       <div className="mn-sep" />
       {user ? (
-        <button className="cfg-logout" onClick={handleLogout}>
+        <button className="cfg-logout" onClick={() => setConfirmLogout(true)}>
           <LogOut size={16} /> Cerrar sesión
         </button>
       ) : (
@@ -95,6 +98,29 @@ export default function ConfiguracionPage() {
       )}
 
       {authOpen && <AuthDialog user={user} close={() => setAuthOpen(false)} />}
+
+      {confirmLogout && (
+        <div className="dialog-bg" onClick={() => setConfirmLogout(false)}>
+          <div className="lawyer-modal" style={{ maxWidth: 360, textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+            <button className="close-btn" onClick={() => setConfirmLogout(false)}><X size={18} /></button>
+            <div className="lawyer-modal-body">
+              <LogOut size={28} style={{ color: 'var(--wine)', margin: '0 auto 12px' }} />
+              <h2 style={{ fontSize: 18, marginBottom: 6 }}>¿Cerrar sesión?</h2>
+              <p style={{ fontSize: 13, color: '#777', margin: 0 }}>
+                ¿Estás seguro de que quieres cerrar tu sesión en VARIUS? Podrás volver a iniciar sesión cuando quieras.
+              </p>
+            </div>
+            <div className="lawyer-modal-footer" style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+              <button className="landing-btn primary compact" onClick={handleLogout}>
+                <LogOut size={14} /> Cerrar sesión
+              </button>
+              <button className="landing-btn secondary compact" onClick={() => setConfirmLogout(false)}>
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
