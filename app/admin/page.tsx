@@ -2,16 +2,18 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Award, Check, ShieldCheck, X } from 'lucide-react';
+import { Award, Check, ShieldCheck, Trash2, X } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { LawyerVerification } from '@/lib/firebase/verification';
-import { approveVerification, fetchPendingVerifications, rejectVerification } from '@/lib/firebase/admin';
+import { approveVerification, fetchAllUsers, fetchPendingVerifications, deleteUserData, rejectVerification } from '@/lib/firebase/admin';
 import Skeleton from '@/app/components/Skeleton';
 
 export default function AdminPage() {
   const { user, role, loading } = useAuth();
   const [items, setItems] = useState<LawyerVerification[]>([]);
   const [loadingItems, setLoadingItems] = useState(true);
+  const [users, setUsers] = useState<{ id: string; name: string; email: string; role: string }[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [msg, setMsg] = useState('');
 
@@ -20,6 +22,8 @@ export default function AdminPage() {
     let active = true;
     setLoadingItems(true);
     fetchPendingVerifications().then((l) => { if (active) setItems(l); }).catch(() => {}).finally(() => { if (active) setLoadingItems(false); });
+    setLoadingUsers(true);
+    fetchAllUsers().then((l) => { if (active) setUsers(l); }).catch(() => {}).finally(() => { if (active) setLoadingUsers(false); });
     return () => { active = false; };
   }, [role]);
 
@@ -62,6 +66,18 @@ export default function AdminPage() {
       setItems((prev) => prev.filter((x) => x.uid !== v.uid));
       setMsg(`${v.fullName} fue rechazado.`);
     } catch { setMsg('No se pudo rechazar la solicitud.'); }
+    finally { setBusyId(null); }
+  };
+
+  const handleDeleteUser = async (u: { id: string; name: string; email: string; role: string }) => {
+    if (!user || u.id === user.uid) return;
+    if (!window.confirm(`¿Eliminar a ${u.name || u.email}? Se borrarán todos sus datos en Firestore (perfil, abogado, asesorías, notificaciones, historial).`)) return;
+    setBusyId(u.id); setMsg('');
+    try {
+      await deleteUserData(u.id);
+      setUsers((prev) => prev.filter((x) => x.id !== u.id));
+      setMsg(`Usuario ${u.name || u.email} eliminado.`);
+    } catch { setMsg('No se pudo eliminar el usuario.'); }
     finally { setBusyId(null); }
   };
 
@@ -119,6 +135,33 @@ export default function AdminPage() {
                 </div>
               </div>
             </div>
+          </div>
+        ))
+      )}
+
+      <h2 style={{ fontSize: 16, margin: '28px 0 14px' }}>Usuarios registrados</h2>
+      {loadingUsers ? (
+        <p style={{ fontSize: 12, color: '#999' }}>Cargando…</p>
+      ) : users.length === 0 ? (
+        <p style={{ fontSize: 13, color: '#888', background: '#faf7f8', borderRadius: 12, padding: 20 }}>
+          No hay usuarios registrados.
+        </p>
+      ) : (
+        users.map((u) => (
+          <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: '1px dashed var(--line)', fontSize: 13 }}>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <b>{u.name || '—'}</b>{' '}
+              <small style={{ color: '#888' }}>{u.email} · {u.role}</small>
+            </span>
+            {u.id !== user?.uid && (
+              <button
+                style={{ fontSize: 11, color: '#b00020', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}
+                disabled={busyId === u.id}
+                onClick={() => void handleDeleteUser(u)}
+              >
+                <Trash2 size={13} /> Eliminar
+              </button>
+            )}
           </div>
         ))
       )}

@@ -1,6 +1,6 @@
 'use client';
 
-import { collection, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDoc, getDocs, limit, query, setDoc, updateDoc, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import { addHistory, createNotification } from '@/lib/firebase/notifications';
 import { LawyerVerification } from '@/lib/firebase/verification';
@@ -82,4 +82,41 @@ export async function rejectVerification(uid: string, fullName: string, adminUid
     addHistory(uid, 'cuenta', 'Verificación de abogado rechazada'),
     addHistory(adminUid, 'cuenta', `Rechazó la verificación de ${fullName}`),
   ]);
+}
+
+export async function fetchAllUsers(limitN = 100): Promise<{ id: string; name: string; email: string; role: string }[]> {
+  if (!db) return [];
+  try {
+    const q = query(collection(db, 'users'), limit(limitN));
+    const snap = await getDocs(q);
+    return snap.docs.map((d) => {
+      const data = d.data();
+      return {
+        id: d.id,
+        name: (data.displayName as string) ?? (data.name as string) ?? '',
+        email: (data.email as string) ?? '',
+        role: (data.role as string) ?? '',
+      };
+    });
+  } catch { return []; }
+}
+
+export async function deleteUserData(uid: string): Promise<void> {
+  if (!db) throw new Error('Firebase no está configurado.');
+  const jobs: Promise<unknown>[] = [
+    deleteDoc(doc(db, 'users', uid)).catch(() => {}),
+    deleteDoc(doc(db, 'lawyers', uid)).catch(() => {}),
+    deleteDoc(doc(db, 'lawyer_verifications', uid)).catch(() => {}),
+  ];
+  const byClient = await getDocs(query(collection(db, 'consultationRequests'), where('clientId', '==', uid))).catch(() => null);
+  byClient?.forEach((d) => jobs.push(deleteDoc(d.ref).catch(() => {})));
+  const byLawyer = await getDocs(query(collection(db, 'consultationRequests'), where('lawyerId', '==', uid))).catch(() => null);
+  byLawyer?.forEach((d) => jobs.push(deleteDoc(d.ref).catch(() => {})));
+  const convos = await getDocs(query(collection(db, 'conversations'), where('participantIds', 'array-contains', uid))).catch(() => null);
+  convos?.forEach((d) => jobs.push(deleteDoc(d.ref).catch(() => {})));
+  const notifs = await getDocs(query(collection(db, 'notifications'), where('userId', '==', uid))).catch(() => null);
+  notifs?.forEach((d) => jobs.push(deleteDoc(d.ref).catch(() => {})));
+  const history = await getDocs(query(collection(db, 'actionHistory'), where('userId', '==', uid))).catch(() => null);
+  history?.forEach((d) => jobs.push(deleteDoc(d.ref).catch(() => {})));
+  await Promise.all(jobs);
 }

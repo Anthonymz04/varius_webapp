@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { Bot, LogOut, Menu, Scale, Search, Users, X } from 'lucide-react';
+import { BookOpen, Bot, HelpCircle, Instagram, LogOut, Mail, Menu, MessageCircle, Music2, Scale, Search, Settings, User, Users, X, Youtube } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import AuthDialog from './AuthDialog';
 import NotificationBell from './NotificationBell';
@@ -248,23 +248,57 @@ export default function Header() {
 
       {menu && (
         <nav className="mobile-nav">
-          {navLinks.map((link) => (
-            <Link key={link.href} href={link.href} onClick={() => setMenu(false)}>
-              {link.label}
-            </Link>
-          ))}
+          <Link className="mn-profile" href="/perfil" onClick={() => setMenu(false)}>
+            <span className="mn-avatar">{initials}</span>
+            <span>
+              <b>{user?.displayName || 'Mi perfil'}</b>
+              <small>{user ? (user.email ?? 'Cuenta VARIUS') : 'Inicia sesión para continuar'}</small>
+            </span>
+          </Link>
+
+          <div className="mn-section">ACTIVIDAD</div>
+          <Link className="mn-item" href="/mensajes" onClick={() => setMenu(false)}>
+            <MessageCircle size={17} /> Asesorías activas
+          </Link>
+          <Link className="mn-item" href="/perfil" onClick={() => setMenu(false)}>
+            <Settings size={17} /> Configuración de cuenta
+          </Link>
+
+          <div className="mn-section">VARIUS</div>
+          <Link className="mn-item" href="/nosotros" onClick={() => setMenu(false)}>
+            <BookOpen size={17} /> Misión y visión
+          </Link>
+          <Link className="mn-item" href="/nosotros" onClick={() => setMenu(false)}>
+            <Mail size={17} /> Contáctanos
+          </Link>
+
+          <div className="mn-section">AYUDA</div>
+          <Link className="mn-item" href="/preguntas-frecuentes" onClick={() => setMenu(false)}>
+            <HelpCircle size={17} /> Preguntas frecuentes
+          </Link>
+          <Link className="mn-item" href="/asistente" onClick={() => setMenu(false)}>
+            <User size={17} /> Soporte con IA
+          </Link>
+
+          <div className="mn-section">SÍGUENOS</div>
+          <div className="mn-socials">
+            <a href="https://instagram.com/varius_legal" target="_blank" rel="noopener noreferrer"><Instagram size={18} /></a>
+            <a href="https://tiktok.com/@varius_legal" target="_blank" rel="noopener noreferrer"><Music2 size={18} /></a>
+            <a href="https://youtube.com/@varius_legal" target="_blank" rel="noopener noreferrer"><Youtube size={18} /></a>
+          </div>
+
           {!user && (
-            <button
-              onClick={() => { setMenu(false); setAuthOpen(true); }}
-              style={{ color: 'var(--wine)', fontWeight: 600 }}
-            >
+            <div className="mn-sep" />
+          )}
+          {!user && (
+            <button className="mn-logout" onClick={() => { setMenu(false); setAuthOpen(true); }}>
               Acceder
             </button>
           )}
           {user && (
             <>
-              <div className="menu-sep" />
-              <button className="logout-btn" onClick={handleLogout}>
+              <div className="mn-sep" />
+              <button className="mn-logout" onClick={handleLogout}>
                 <LogOut size={16} /> Cerrar sesión
               </button>
             </>
