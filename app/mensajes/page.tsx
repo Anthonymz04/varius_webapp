@@ -39,6 +39,7 @@ function ChatInner() {
   const [sending, setSending] = useState(false);
   const [accepting, setAccepting] = useState(false);
   const [closing, setClosing] = useState(false);
+  const [closeModal, setCloseModal] = useState(false);
   const [lawyers, setLawyers] = useState<Lawyer[]>([]);
   const [lawyerModal, setLawyerModal] = useState(false);
   const chatBodyRef = useRef<HTMLDivElement>(null);
@@ -205,12 +206,17 @@ function ChatInner() {
     }
   };
 
-  const handleClose = async () => {
+  const handleClose = () => {
     if (!active || active.lawyerId !== user.uid || closing) return;
-    if (!window.confirm('¿Finalizar esta asesoría? Se cerrará el chat y ya no se podrán enviar mensajes.')) return;
+    setCloseModal(true);
+  };
+
+  const confirmClose = async () => {
+    if (!active || closing) return;
     setClosing(true);
     try {
       await finalizarConversacion(active.id);
+      setCloseModal(false);
     } catch {
       alert('No se pudo finalizar la asesoría.');
     } finally {
@@ -253,18 +259,38 @@ function ChatInner() {
                   </button>
                 );
               })}
-              <div className="mensajes-group">Mis asesorías</div>
-              {conversaciones.map((c) => (
-                <button
-                  key={c.id}
-                  className={`mensaje-item ${c.id === activeId ? 'active' : ''}`}
-                  onClick={() => { setActiveId(c.id); setActiveRequestId(null); }}
-                >
-                  <b>{otherName(c)}{c.status === 'finalizada' && <em className="mchat-badge">Finalizada</em>}</b>
-                  <span>{c.lastMessage}</span>
-                  <small>{new Date(c.lastMessageAt).toLocaleDateString('es-EC', { day: 'numeric', month: 'short' })}</small>
-                </button>
-              ))}
+              {(() => {
+                const activas = conversaciones.filter((c) => c.status !== 'finalizada');
+                const finalizadas = conversaciones.filter((c) => c.status === 'finalizada');
+                return (
+                  <>
+                    {activas.length > 0 && <div className="mensajes-group">Asesorías activas</div>}
+                    {activas.map((c) => (
+                      <button
+                        key={c.id}
+                        className={`mensaje-item ${c.id === activeId ? 'active' : ''}`}
+                        onClick={() => { setActiveId(c.id); setActiveRequestId(null); }}
+                      >
+                        <b>{otherName(c)}</b>
+                        <span>{c.lastMessage}</span>
+                        <small>{new Date(c.lastMessageAt).toLocaleDateString('es-EC', { day: 'numeric', month: 'short' })}</small>
+                      </button>
+                    ))}
+                    {finalizadas.length > 0 && <div className="mensajes-group">Finalizadas</div>}
+                    {finalizadas.map((c) => (
+                      <button
+                        key={c.id}
+                        className={`mensaje-item ${c.id === activeId ? 'active' : ''}`}
+                        onClick={() => { setActiveId(c.id); setActiveRequestId(null); }}
+                      >
+                        <b>{otherName(c)}</b>
+                        <span>{c.lastMessage}</span>
+                        <small>{new Date(c.lastMessageAt).toLocaleDateString('es-EC', { day: 'numeric', month: 'short' })}</small>
+                      </button>
+                    ))}
+                  </>
+                );
+              })()}
             </>
           )}
           {lawyers.length > 0 && (
@@ -390,6 +416,29 @@ function ChatInner() {
           )}
         </div>
       </div>
+
+      {closeModal && active && (
+        <div className="dialog-bg" onClick={() => setCloseModal(false)}>
+          <div className="lawyer-modal" style={{ maxWidth: 380, textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+            <button className="close-btn" onClick={() => setCloseModal(false)}><X size={18} /></button>
+            <div className="lawyer-modal-body">
+              <X size={26} style={{ color: 'var(--wine)', margin: '0 auto 12px' }} />
+              <h2 style={{ fontSize: 17, marginBottom: 6 }}>¿Finalizar asesoría?</h2>
+              <p style={{ fontSize: 13, color: '#777', margin: 0 }}>
+                Se cerrará el chat con <b>{otherName(active)}</b> y ya no se podrán enviar mensajes.
+              </p>
+            </div>
+            <div className="lawyer-modal-footer" style={{ display: 'flex', justifyContent: 'center', gap: 10 }}>
+              <button className="landing-btn primary compact" disabled={closing} onClick={confirmClose}>
+                <span>{closing ? 'Finalizando…' : 'Finalizar'}</span>
+              </button>
+              <button className="landing-btn secondary compact" disabled={closing} onClick={() => setCloseModal(false)}>
+                <span>Cancelar</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {lawyerModal && (
         <div className="dialog-bg" onClick={() => setLawyerModal(false)}>
