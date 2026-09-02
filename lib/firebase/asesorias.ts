@@ -29,6 +29,7 @@ export async function createRequest(input: {
   topic?: string;
 }): Promise<string> {
   if (!db) throw new Error('Firebase no está configurado.');
+  if (input.clientId === input.lawyerId) throw new Error('No puedes solicitar asesoría a ti mismo.');
   const docRef = await addDoc(collection(db, 'consultationRequests'), {
     clientId: input.clientId,
     clientName: input.clientName,

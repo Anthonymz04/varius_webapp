@@ -96,14 +96,18 @@ function ChatInner() {
 
   const handleRequest = async (lawyer: Lawyer) => {
     if (!user) return;
-    await createRequest({
-      clientId: user.uid,
-      clientName: user.displayName || 'Usuario VARIUS',
-      clientEmail: user.email ?? '',
-      lawyerId: (lawyer as Lawyer & { uid?: string }).uid ?? '',
-      lawyerName: lawyer.name,
-    });
-    setLawyerModal(false);
+    try {
+      await createRequest({
+        clientId: user.uid,
+        clientName: user.displayName || 'Usuario VARIUS',
+        clientEmail: user.email ?? '',
+        lawyerId: (lawyer as Lawyer & { uid?: string }).uid ?? '',
+        lawyerName: lawyer.name,
+      });
+      setLawyerModal(false);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'No se pudo enviar la solicitud.');
+    }
   };
 
   return (
@@ -190,7 +194,7 @@ function ChatInner() {
             <div className="lawyer-modal-body">
               <h2 style={{ fontSize: 18, marginBottom: 6 }}>Elige un abogado</h2>
               <p style={{ fontSize: 13, color: '#777', marginBottom: 14 }}>Se enviará una solicitud de asesoría que el abogado podrá aceptar o rechazar.</p>
-              {lawyers.map((l) => (
+              {lawyers.filter((l) => (l as Lawyer & { uid?: string }).uid !== user?.uid).map((l) => (
                 <button
                   key={l.id}
                   onClick={() => void handleRequest(l)}

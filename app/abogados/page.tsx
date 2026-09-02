@@ -67,11 +67,11 @@ function AbogadosContent() {
     try {
       await createConsultationRequest(user.uid, user.email ?? '', lawyer);
       setToastMessage(`Solicitud enviada a ${lawyer.name}. Te contactaremos a ${user.email}.`);
-    } catch {
-      setToastMessage('No se pudo enviar la solicitud. Inténtalo de nuevo.');
+      setSelectedLawyer(null);
+    } catch (e) {
+      setToastMessage(e instanceof Error ? e.message : 'No se pudo enviar la solicitud. Inténtalo de nuevo.');
     } finally {
       setSending(false);
-      setSelectedLawyer(null);
       setTimeout(() => setToastMessage(null), 5000);
     }
   };
@@ -261,10 +261,10 @@ function AbogadosContent() {
               <span className="lawyer-modal-price">{selectedLawyer.price}</span>
               <button
                 className="landing-btn primary compact"
-                disabled={sending}
+                disabled={sending || user?.uid === selectedLawyer.uid}
                 onClick={() => handleBookSession(selectedLawyer)}
               >
-                <span>{sending ? 'Enviando…' : 'Solicitar Asesoría'}</span>
+                <span>{sending ? 'Enviando…' : user?.uid === selectedLawyer.uid ? 'Eres tú' : 'Solicitar Asesoría'}</span>
               </button>
             </div>
           </div>

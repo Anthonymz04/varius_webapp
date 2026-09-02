@@ -48,15 +48,19 @@ function AsistenteChat() {
 
   const handleRequest = async (lawyer: Lawyer) => {
     if (!user) return;
-    await createRequest({
-      clientId: user.uid,
-      clientName: user.displayName || 'Usuario VARIUS',
-      clientEmail: user.email ?? '',
-      lawyerId: (lawyer as Lawyer & { uid?: string }).uid ?? '',
-      lawyerName: lawyer.name,
-      topic: draft.trim(),
-    });
-    setLawyerModal(false);
+    try {
+      await createRequest({
+        clientId: user.uid,
+        clientName: user.displayName || 'Usuario VARIUS',
+        clientEmail: user.email ?? '',
+        lawyerId: (lawyer as Lawyer & { uid?: string }).uid ?? '',
+        lawyerName: lawyer.name,
+        topic: draft.trim(),
+      });
+      setLawyerModal(false);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'No se pudo enviar la solicitud.');
+    }
   };
 
   const showSaveBanner =
@@ -306,7 +310,7 @@ function AsistenteChat() {
               {lawyers.length === 0 ? (
                 <p style={{ fontSize: 12, color: '#999' }}>Cargando abogados…</p>
               ) : (
-                lawyers.map((l) => (
+                lawyers.filter((l) => (l as Lawyer & { uid?: string }).uid !== user?.uid).map((l) => (
                   <button
                     key={l.id}
                     onClick={() => void handleRequest(l)}

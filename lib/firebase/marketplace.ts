@@ -56,11 +56,13 @@ export async function createConsultationRequest(
   lawyerEmail?: string
 ): Promise<void> {
   if (!db) throw new Error('Firebase no está configurado');
+  const lawyerUid = (lawyer as Lawyer & { uid?: string }).uid ?? '';
+  if (uid === lawyerUid) throw new Error('No puedes solicitar asesoría a ti mismo.');
   await addDoc(collection(db, 'consultationRequests'), {
     clientId: uid,
     clientName: '',
     clientEmail: userEmail,
-    lawyerId: (lawyer as Lawyer & { uid?: string }).uid ?? '',
+    lawyerId: lawyerUid,
     lawyerName: lawyer.name,
     status: 'pendiente',
     createdAt: Date.now(),
