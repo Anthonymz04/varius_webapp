@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Award, CalendarDays, Camera, Check, FileText, GraduationCap, History, LogOut, Pencil, ShieldCheck, Upload, X } from 'lucide-react';
 import { updateProfile as updateAuthProfile } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase/client';
 import { useAuth } from '@/lib/auth-context';
 import { useMisSolicitudes } from '@/app/hooks/useMisSolicitudes';
 import { ProfileFields, UserRole, updateProfileFields, fetchUserProfile, UserProfile } from '@/lib/firebase/profile';
@@ -12,6 +14,7 @@ import { HistoryItem, fetchHistory } from '@/lib/firebase/notifications';
 import { fetchConsultations } from '@/lib/firebase/consultations';
 import { uploadCover, uploadAvatar, uploadCertificate, uploadCV } from '@/lib/firebase/uploads';
 import { AsesoriaRequest, createConversacion, fetchLawyerRequests, updateRequestStatus } from '@/lib/firebase/asesorias';
+import { updateLawyerPrice } from '@/lib/firebase/marketplace';
 import Skeleton from '@/app/components/Skeleton';
 import {
   LawyerVerification,
@@ -64,6 +67,10 @@ export default function PerfilPage() {
   const [verifyCv, setVerifyCv] = useState<File | null>(null);
   const [lawyerRequests, setLawyerRequests] = useState<AsesoriaRequest[]>([]);
   const [confirmLogout, setConfirmLogout] = useState(false);
+  const [lawyerPrice, setLawyerPrice] = useState('');
+  const [lawyerPriceLoading, setLawyerPriceLoading] = useState(false);
+  const [lawyerPriceSaving, setLawyerPriceSaving] = useState(false);
+  const [lawyerPriceError, setLawyerPriceError] = useState('');
   const router = useRouter();
 
   useEffect(() => {
@@ -96,9 +103,15 @@ export default function PerfilPage() {
   }, [user?.uid]);
 
   useEffect(() => {
-    if (!user || role !== 'lawyer') { setLawyerRequests([]); return; }
+    if (!user || role !== 'lawyer' || !db) { setLawyerPrice(''); return; }
     let active = true;
-    fetchLawyerRequests(user.uid).then((l) => { if (active) setLawyerRequests(l); }).catch(() => {});
+    setLawyerPriceLoading(true);
+    getDoc(doc(db, 'lawyers', user.uid))
+      .then((snap) => {
+        if (active && snap.exists()) setLawyerPrice((snap.data() as Record<string, string>).price ?? '');
+      })
+      .catch(() => {})
+      .finally(() => { if (active) setLawyerPriceLoading(false); });
     return () => { active = false; };
   }, [user?.uid, role]);
 
@@ -268,6 +281,17 @@ export default function PerfilPage() {
     finally { setVerifySaving(false); setVerifyPdfUploading(false); }
   };
 
+  const saveLawyerPrice = async () => {
+    if (!user || !lawyerPrice.trim()) return;
+    setLawyerPriceSaving(true); setLawyerPriceError('');
+    try {
+      await updateLawyerPrice(user.uid, lawyerPrice.trim());
+      setVerifyForm((f) => ({ ...f, price: lawyerPrice.trim() }));
+      if (verification) setVerification((v) => v ? { ...v, price: lawyerPrice.trim() } : v);
+    } catch { setLawyerPriceError('No se pudo guardar el precio.'); }
+    finally { setLawyerPriceSaving(false); }
+  };
+
   const canSubmitVerification = !verification || verification.status === 'rechazada';
   const verifyFormValid = verifyForm.registryNumber.trim() && verifyForm.university.trim() && verifyForm.yearsExperience.trim() && verifyForm.cedula.trim() && verifyPdf;
 
@@ -429,8 +453,26 @@ export default function PerfilPage() {
           <h2>Perfil profesional</h2>
           {profile?.cedula && <p style={{ fontSize: 12, color: '#888', marginBottom: 8 }}>Cédula: {profile.cedula}</p>}
           {profile?.bio && <p style={{ fontSize: 12, color: '#888', marginBottom: 8 }}>{profile.bio}</p>}
-          <p className="lead" style={{ marginBottom: '16px' }}>Tu perfil de abogado será visible en el marketplace cuando un administrador lo apruebe.</p>
-          <p style={{ fontSize: '12px', color: '#aaa' }}>La edición del perfil profesional estará disponible próximamente.</p>
+          <p style={{ fontSize: '12px', color: '#aaa', marginBottom: 12 }}>Actualiza el precio de tu consulta. Se reflejará en el marketplace.</p>
+          <label style={{ fontSize: 12, color: '#888', fontWeight: 600, display: 'block', marginBottom: 10 }}>
+            Precio de consulta
+            <input
+              className="input-field"
+              style={{ marginTop: 4 }}
+              value={lawyerPrice}
+              onChange={(e) => setLawyerPrice(e.target.value)}
+              placeholder="Ej. $30 / consulta"
+              disabled={lawyerPriceLoading}
+            />
+          </label>
+          {lawyerPriceError && <p style={{ fontSize: 12, color: '#b00020', margin: '6px 0' }}>{lawyerPriceError}</p>}
+          <button
+            className="landing-btn primary compact"
+            disabled={lawyerPriceSaving || !lawyerPrice.trim()}
+            onClick={saveLawyerPrice}
+          >
+            <span>{lawyerPriceSaving ? 'Guardando…' : 'Guardar precio'}</span>
+          </button>
         </div>
       )}
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { addDoc, collection, getDocs, query, where } from 'firebase/firestore';
+import { addDoc, collection, doc, getDocs, query, updateDoc, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import { SEED_LAWYERS, SeedLawyer } from '@/lib/firebase/seed-data';
 import { addHistory, createNotification } from '@/lib/firebase/notifications';
@@ -89,9 +89,15 @@ export async function fetchMyRequests(uid: string): Promise<ConsultationRequest[
         createdAt: typeof data.createdAt === 'number' ? data.createdAt : Date.now(),
       };
     });
-    list.sort((a, b) => b.createdAt - a.createdAt);
-    return list;
-  } catch {
-    return [];
-  }
+  list.sort((a, b) => b.createdAt - a.createdAt);
+  return list;
+} catch {
+  return [];
 }
+}
+
+export async function updateLawyerPrice(uid: string, price: string): Promise<void> {
+  if (!db) throw new Error('Firebase no está configurado');
+  await updateDoc(doc(db, 'lawyers', uid), { price });
+}
+
