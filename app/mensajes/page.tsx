@@ -2,15 +2,20 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Bot, MessageCircle, Search, Send } from 'lucide-react';
+import { ArrowLeft, Bot, Check, MessageCircle, Search, Send, X } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import {
+  AsesoriaRequest,
   Conversacion,
   Mensaje,
+  createConversacion,
   fetchConversaciones,
+  fetchClientRequests,
+  fetchLawyerRequests,
   sendMessage,
   subscribeMessages,
   createRequest,
+  updateRequestStatus,
 } from '@/lib/firebase/asesorias';
 import { fetchLawyers, Lawyer } from '@/lib/firebase/marketplace';
 import { useSearchParams } from 'next/navigation';
@@ -21,24 +26,43 @@ function ChatInner() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
   const [conversaciones, setConversaciones] = useState<Conversacion[]>([]);
+  const [requests, setRequests] = useState<AsesoriaRequest[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeRequestId, setActiveRequestId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Mensaje[]>([]);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
+  const [accepting, setAccepting] = useState(false);
   const [lawyers, setLawyers] = useState<Lawyer[]>([]);
   const [lawyerModal, setLawyerModal] = useState(false);
   const chatBodyRef = useRef<HTMLDivElement>(null);
 
   const active = conversaciones.find((c) => c.id === activeId) ?? null;
+  const activeRequest = requests.find((r) => r.id === activeRequestId) ?? null;
+
+  const loadAll = async (uid: string) => {
+    const [convos, myReqs, mySent] = await Promise.all([
+      fetchConversaciones(uid),
+      fetchLawyerRequests(uid),
+      fetchClientRequests(uid),
+    ]);
+    const seen = new Map<string, AsesoriaRequest>();
+    [...myReqs, ...mySent].forEach((r) => {
+      if (!seen.has(r.id) || r.createdAt > (seen.get(r.id)?.createdAt ?? 0)) seen.set(r.id, r);
+    });
+    const merged = Array.from(seen.values()).sort((a, b) => b.createdAt - a.createdAt);
+    return { convos, requests: merged };
+  };
 
   useEffect(() => {
     if (!user) return;
     let activeFlag = true;
-    fetchConversaciones(user.uid).then((list) => {
+    loadAll(user.uid).then(({ convos, requests: reqs }) => {
       if (!activeFlag) return;
-      setConversaciones(list);
+      setConversaciones(convos);
+      setRequests(reqs);
       const fromUrl = searchParams.get('conversacion');
-      if (fromUrl && list.some((c) => c.id === fromUrl)) setActiveId(fromUrl);
+      if (fromUrl && convos.some((c) => c.id === fromUrl)) setActiveId(fromUrl);
     });
     fetchLawyers().then((l) => { if (activeFlag) setLawyers(l); });
     return () => { activeFlag = false; };
@@ -60,10 +84,11 @@ function ChatInner() {
     let activeFlag = true;
     const poll = () => {
       if (!activeFlag) return;
-      fetchConversaciones(user.uid).then((list) => {
+      loadAll(user.uid).then(({ convos, requests: reqs }) => {
         if (!activeFlag) return;
-        setConversaciones(list);
-        if (activeId && !list.some((c) => c.id === activeId)) {
+        setConversaciones(convos);
+        setRequests(reqs);
+        if (activeId && !convos.some((c) => c.id === activeId)) {
           setActiveId(null);
         }
       });
@@ -110,6 +135,38 @@ function ChatInner() {
     }
   };
 
+  const acceptRequest = async (req: AsesoriaRequest) => {
+    if (!user) return;
+    setAccepting(true);
+    try {
+      await updateRequestStatus(req.id, 'aceptada');
+      const convId = await createConversacion({
+        clientId: req.clientId,
+        clientName: req.clientName,
+        lawyerId: user.uid,
+        lawyerName: user.displayName || 'Abogado VARIUS',
+        requestId: req.id,
+      });
+      setActiveRequestId(null);
+      setActiveId(convId);
+    } catch {
+      alert('No se pudo aceptar la solicitud.');
+    } finally {
+      setAccepting(false);
+    }
+  };
+
+  const rejectRequest = async (req: AsesoriaRequest) => {
+    if (!user) return;
+    try {
+      await updateRequestStatus(req.id, 'rechazada');
+      setRequests((prev) => prev.map((r) => r.id === req.id ? { ...r, status: 'rechazada' } : r));
+      setActiveRequestId(null);
+    } catch {
+      alert('No se pudo rechazar la solicitud.');
+    }
+  };
+
   return (
     <section className="mensajes-page">
       <div className="mensajes-head">
@@ -119,23 +176,43 @@ function ChatInner() {
 
       <div className="mensajes-layout">
         <div className="mensajes-list">
-          {conversaciones.length === 0 ? (
+          {requests.length === 0 && conversaciones.length === 0 ? (
             <div style={{ padding: 24, textAlign: 'center', fontSize: 13, color: '#888' }}>
               <MessageCircle size={28} style={{ margin: '0 auto 10px', color: 'var(--wine)' }} />
               <p style={{ margin: 0 }}>Aún no tienes asesorías activas. Solicita una desde el asistente IA o el marketplace.</p>
             </div>
           ) : (
-            conversaciones.map((c) => (
-              <button
-                key={c.id}
-                className={`mensaje-item ${c.id === activeId ? 'active' : ''}`}
-                onClick={() => setActiveId(c.id)}
-              >
-                <b>{otherName(c)}</b>
-                <span>{c.lastMessage}</span>
-                <small>{new Date(c.lastMessageAt).toLocaleDateString('es-EC', { day: 'numeric', month: 'short' })}</small>
-              </button>
-            ))
+            <>
+              {requests.filter((r) => r.status === 'pendiente').length > 0 && (
+                <div className="mensajes-group">Solicitudes de asesoría</div>
+              )}
+              {requests.filter((r) => r.status === 'pendiente').map((r) => {
+                const iAmLawyer = r.lawyerId === user.uid;
+                return (
+                  <button
+                    key={`req-${r.id}`}
+                    className={`mensaje-item ${activeRequestId === r.id ? 'active' : ''}`}
+                    onClick={() => { setActiveRequestId(r.id); setActiveId(null); }}
+                  >
+                    <b>{iAmLawyer ? `${r.clientName} busca asesoría` : `Solicitud con ${r.lawyerName}`}</b>
+                    <span>{iAmLawyer ? 'Responder solicitud' : 'Esperando respuesta del abogado'}</span>
+                    <small>{new Date(r.createdAt).toLocaleDateString('es-EC', { day: 'numeric', month: 'short' })}</small>
+                  </button>
+                );
+              })}
+              <div className="mensajes-group">Mis asesorías</div>
+              {conversaciones.map((c) => (
+                <button
+                  key={c.id}
+                  className={`mensaje-item ${c.id === activeId ? 'active' : ''}`}
+                  onClick={() => { setActiveId(c.id); setActiveRequestId(null); }}
+                >
+                  <b>{otherName(c)}</b>
+                  <span>{c.lastMessage}</span>
+                  <small>{new Date(c.lastMessageAt).toLocaleDateString('es-EC', { day: 'numeric', month: 'short' })}</small>
+                </button>
+              ))}
+            </>
           )}
           {lawyers.length > 0 && (
             <button className="mensaje-new" onClick={() => setLawyerModal(true)}>
@@ -145,9 +222,46 @@ function ChatInner() {
         </div>
 
         <div className="mensajes-chat">
-          {!active ? (
+          {activeRequest ? (
+            (() => {
+              const iAmLawyer = activeRequest.lawyerId === user.uid;
+              return (
+                <>
+                  <div className="mensajes-chat-head">
+                    <span>{iAmLawyer ? `Solicitud de ${activeRequest.clientName || 'usuario'}` : `Solicitud con ${activeRequest.lawyerName}`}</span>
+                  </div>
+                  <div className="mensajes-chat-body" style={{ display: 'grid', placeItems: 'center', textAlign: 'center' }}>
+                    <div style={{ maxWidth: 420, padding: 30 }}>
+                      <MessageCircle size={40} style={{ color: 'var(--wine)', margin: '0 auto 14px' }} />
+                      <b style={{ fontSize: 15, display: 'block', marginBottom: 6 }}>
+                        {iAmLawyer ? `${activeRequest.clientName || 'Un usuario'} te ha solicitado una asesoría` : `Solicitud enviada a ${activeRequest.lawyerName}`}
+                      </b>
+                      {activeRequest.topic && (
+                        <p style={{ fontSize: 13, color: '#666', background: '#faf7f7', border: '1px solid var(--line)', borderRadius: 10, padding: '12px 14px', lineHeight: 1.5 }}>
+                          <b style={{ display: 'block', color: '#888', fontSize: 11, marginBottom: 4 }}>TEMA</b>{activeRequest.topic}
+                        </p>
+                      )}
+                      <p style={{ fontSize: 12, color: '#999', margin: '14px 0 0' }}>
+                        {iAmLawyer ? 'Si aceptas, se abrirá un chat directo con el cliente.' : 'En cuanto el abogado acepte tu solicitud, este chat se activará.'}
+                      </p>
+                      {iAmLawyer && (
+                        <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 18 }}>
+                          <button className="landing-btn primary compact" disabled={accepting} onClick={() => void acceptRequest(activeRequest)}>
+                            <Check size={15} /> {accepting ? 'Aceptando…' : 'Aceptar'}
+                          </button>
+                          <button className="landing-btn secondary compact" disabled={accepting} onClick={() => void rejectRequest(activeRequest)}>
+                            <X size={15} /> Rechazar
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </>
+              );
+            })()
+          ) : !active ? (
             <div style={{ padding: 40, textAlign: 'center', color: '#999', fontSize: 13 }}>
-              Selecciona una asesoría para ver el chat, o busca un abogado para iniciar una nueva.
+              Selecciona una solicitud o asesoría para ver el chat, o busca un abogado para iniciar una nueva.
             </div>
           ) : (
             <>

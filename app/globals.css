@@ -4213,6 +4213,19 @@ select.select-field:focus {
   color: #aaa;
 }
 
+.mensajes-group {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #b58a99;
+  margin: 10px 2px 2px;
+}
+
+.mensajes-group:first-child {
+  margin-top: 0;
+}
+
 .mensaje-new {
   border: 1px dashed var(--wine);
   border-radius: 12px;

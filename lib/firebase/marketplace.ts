@@ -69,7 +69,7 @@ export async function createConsultationRequest(
   });
 
   const fecha = new Date().toLocaleDateString('es-EC', { day: 'numeric', month: 'long', year: 'numeric' });
-  await Promise.all([
+  await Promise.allSettled([
     createNotification(uid, uid, 'asesoria', 'Solicitud de asesoría enviada', `Tu solicitud con ${lawyer.name} (${lawyer.role}) quedó registrada el ${fecha}.`),
     addHistory(uid, 'asesoria', `Solicitó asesoría con ${lawyer.name} (${lawyer.role})`),
   ]);

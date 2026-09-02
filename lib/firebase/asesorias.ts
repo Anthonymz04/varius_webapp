@@ -41,7 +41,7 @@ export async function createRequest(input: {
     createdAt: Date.now(),
     updatedAt: Date.now(),
   });
-  await Promise.all([
+  await Promise.allSettled([
     createNotification(input.clientId, input.clientId, 'asesoria', 'Solicitud de asesoría enviada', `Se solicitó asesoría con ${input.lawyerName}.`),
     addHistory(input.clientId, 'asesoria', `Solicitó asesoría con ${input.lawyerName}`),
     createNotification(input.lawyerId, input.clientId, 'asesoria', `${input.clientName} busca asesoría`, `${input.clientName} te ha solicitado una asesoría jurídica.`),
@@ -53,24 +53,28 @@ export async function createRequest(input: {
 export async function fetchLawyerRequests(lawyerUid: string): Promise<AsesoriaRequest[]> {
   if (!db) return [];
   try {
-    const q = query(collection(db, 'consultationRequests'), where('lawyerId', '==', lawyerUid), orderBy('createdAt', 'desc'));
+    const q = query(collection(db, 'consultationRequests'), where('lawyerId', '==', lawyerUid));
     const snap = await getDocs(q);
-    return snap.docs.map((d) => {
+    const list = snap.docs.map((d) => {
       const data = d.data();
       return { id: d.id, ...data } as AsesoriaRequest;
     });
+    list.sort((a, b) => b.createdAt - a.createdAt);
+    return list;
   } catch { return []; }
 }
 
 export async function fetchClientRequests(clientUid: string): Promise<AsesoriaRequest[]> {
   if (!db) return [];
   try {
-    const q = query(collection(db, 'consultationRequests'), where('clientId', '==', clientUid), orderBy('createdAt', 'desc'));
+    const q = query(collection(db, 'consultationRequests'), where('clientId', '==', clientUid));
     const snap = await getDocs(q);
-    return snap.docs.map((d) => {
+    const list = snap.docs.map((d) => {
       const data = d.data();
       return { id: d.id, ...data } as AsesoriaRequest;
     });
+    list.sort((a, b) => b.createdAt - a.createdAt);
+    return list;
   } catch { return []; }
 }
 
@@ -119,7 +123,7 @@ export async function createConversacion(input: {
     createdAt: Date.now(),
   });
   await updateDoc(doc(db, 'consultationRequests', input.requestId), { conversacionId: docRef.id, status: 'aceptada' });
-  await Promise.all([
+  await Promise.allSettled([
     createNotification(input.clientId, input.lawyerId, 'asesoria', 'Asesoría aceptada', `${input.lawyerName} aceptó tu solicitud de asesoría.`),
     addHistory(input.clientId, 'asesoria', `Asesoría aceptada por ${input.lawyerName}`),
   ]);
@@ -153,11 +157,13 @@ export function subscribeMessages(conversacionId: string, cb: (msgs: Mensaje[]) 
 export async function fetchConversaciones(uid: string): Promise<Conversacion[]> {
   if (!db) return [];
   try {
-    const q = query(collection(db, 'conversations'), where('participantIds', 'array-contains', uid), orderBy('lastMessageAt', 'desc'));
+    const q = query(collection(db, 'conversations'), where('participantIds', 'array-contains', uid));
     const snap = await getDocs(q);
-    return snap.docs.map((d) => {
+    const list = snap.docs.map((d) => {
       const data = d.data();
       return { id: d.id, ...data } as Conversacion;
     });
+    list.sort((a, b) => b.lastMessageAt - a.lastMessageAt);
+    return list;
   } catch { return []; }
 }
