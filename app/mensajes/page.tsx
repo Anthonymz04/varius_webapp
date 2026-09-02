@@ -498,19 +498,19 @@ function ChatInner() {
                   </button>
                 ) : null}
               </div>
+              {pinned.length > 0 && (
+                <div className="mchat-pinnedbar">
+                  <Pin size={13} />
+                  <b>Anclados</b>
+                  {pinned.map((p) => (
+                    <span key={p.id} className="mchat-pin-chip" onClick={() => goToPinned(p)}>
+                      <span className="mchat-pin-text">{p.fileName ? `📎 ${p.fileName}` : p.text}</span>
+                      <button onClick={(e) => { e.stopPropagation(); void handleTogglePin(p); }} aria-label="Desanclar"><PinOff size={11} /></button>
+                    </span>
+                  ))}
+                </div>
+              )}
               <div className="mensajes-chat-body" ref={chatBodyRef}>
-                {pinned.length > 0 && (
-                  <div className="mchat-pinnedbar">
-                    <Pin size={13} />
-                    <b>Anclados</b>
-                    {pinned.map((p) => (
-                      <span key={p.id} className="mchat-pin-chip" onClick={() => goToPinned(p)}>
-                        <span className="mchat-pin-text">{p.fileName ? `📎 ${p.fileName}` : p.text}</span>
-                        <button onClick={(e) => { e.stopPropagation(); void handleTogglePin(p); }} aria-label="Desanclar"><PinOff size={11} /></button>
-                      </span>
-                    ))}
-                  </div>
-                )}
                 {messages.length === 0 && (
                   <div style={{ textAlign: 'center', fontSize: 12, color: '#999', padding: '30px 0' }}>
                     Asesoría iniciada. Presenta tu consulta al abogado.

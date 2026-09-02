@@ -4588,13 +4588,15 @@ select.select-field:focus {
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  padding: 8px 10px;
-  border: 1px dashed #e3c96a;
+  padding: 8px 12px;
+  border-bottom: 1px solid #eee0a0;
   background: #fffbe9;
-  border-radius: 10px;
   font-size: 12px;
   color: #8a7515;
-  margin-bottom: 8px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 5;
 }
 
 .mchat-pinnedbar > b {
