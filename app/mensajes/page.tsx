@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ArrowLeft, Bot, Check, MessageCircle, Search, Send, X } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import {
@@ -9,30 +10,35 @@ import {
   Conversacion,
   Mensaje,
   createConversacion,
-  fetchConversaciones,
-  fetchClientRequests,
-  fetchLawyerRequests,
+  fetchMessages,
   sendMessage,
   subscribeMessages,
+  subscribeConversaciones,
+  subscribeRequests,
   createRequest,
   updateRequestStatus,
+  finalizarConversacion,
 } from '@/lib/firebase/asesorias';
 import { fetchLawyers, Lawyer } from '@/lib/firebase/marketplace';
+import { fetchUserProfile } from '@/lib/firebase/profile';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import FormattedText from '@/app/components/FormattedText';
 
 function ChatInner() {
   const { user } = useAuth();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [conversaciones, setConversaciones] = useState<Conversacion[]>([]);
   const [requests, setRequests] = useState<AsesoriaRequest[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeRequestId, setActiveRequestId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Mensaje[]>([]);
+  const [profileCache, setProfileCache] = useState<Record<string, { displayName?: string; photoURL?: string | null }>>({});
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [accepting, setAccepting] = useState(false);
+  const [closing, setClosing] = useState(false);
   const [lawyers, setLawyers] = useState<Lawyer[]>([]);
   const [lawyerModal, setLawyerModal] = useState(false);
   const chatBodyRef = useRef<HTMLDivElement>(null);
@@ -40,62 +46,45 @@ function ChatInner() {
   const active = conversaciones.find((c) => c.id === activeId) ?? null;
   const activeRequest = requests.find((r) => r.id === activeRequestId) ?? null;
 
-  const loadAll = async (uid: string) => {
-    const [convos, myReqs, mySent] = await Promise.all([
-      fetchConversaciones(uid),
-      fetchLawyerRequests(uid),
-      fetchClientRequests(uid),
-    ]);
-    const seen = new Map<string, AsesoriaRequest>();
-    [...myReqs, ...mySent].forEach((r) => {
-      if (!seen.has(r.id) || r.createdAt > (seen.get(r.id)?.createdAt ?? 0)) seen.set(r.id, r);
-    });
-    const merged = Array.from(seen.values()).sort((a, b) => b.createdAt - a.createdAt);
-    return { convos, requests: merged };
-  };
-
   useEffect(() => {
     if (!user) return;
-    let activeFlag = true;
-    loadAll(user.uid).then(({ convos, requests: reqs }) => {
-      if (!activeFlag) return;
-      setConversaciones(convos);
-      setRequests(reqs);
+    const unsubs: (() => void)[] = [];
+    unsubs.push(subscribeConversaciones(user.uid, (list) => {
+      setConversaciones(list);
       const fromUrl = searchParams.get('conversacion');
-      if (fromUrl && convos.some((c) => c.id === fromUrl)) setActiveId(fromUrl);
-    });
-    fetchLawyers().then((l) => { if (activeFlag) setLawyers(l); });
-    return () => { activeFlag = false; };
+      if (fromUrl && list.some((c) => c.id === fromUrl)) setActiveId(fromUrl);
+    }));
+    unsubs.push(subscribeRequests(user.uid, setRequests));
+    fetchLawyers().then((l) => setLawyers(l));
+    return () => unsubs.forEach((u) => u());
   }, [user?.uid, searchParams]);
 
   useEffect(() => {
     if (!activeId) return;
-    const unsub = subscribeMessages(activeId, setMessages);
-    return () => unsub();
+    let activeFlag = true;
+    fetchMessages(activeId).then((list) => { if (activeFlag) setMessages(list); });
+    const unsub = subscribeMessages(activeId, (list) => { if (activeFlag) setMessages(list); });
+    return () => { activeFlag = false; unsub(); };
   }, [activeId]);
+
+  useEffect(() => {
+    if (!active) return;
+    let activeFlag = true;
+    const ids = [active.clientId, active.lawyerId];
+    Promise.all(ids.map((id) => fetchUserProfile(id)))
+      .then((profiles) => {
+        if (!activeFlag) return;
+        const next: Record<string, { displayName?: string; photoURL?: string | null }> = {};
+        ids.forEach((id, i) => { if (profiles[i]) next[id] = profiles[i] as { displayName?: string; photoURL?: string | null }; });
+        setProfileCache((prev) => ({ ...prev, ...next }));
+      });
+    return () => { activeFlag = false; };
+  }, [active?.clientId, active?.lawyerId]);
 
   useEffect(() => {
     const el = chatBodyRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [messages]);
-
-  useEffect(() => {
-    if (!user) return;
-    let activeFlag = true;
-    const poll = () => {
-      if (!activeFlag) return;
-      loadAll(user.uid).then(({ convos, requests: reqs }) => {
-        if (!activeFlag) return;
-        setConversaciones(convos);
-        setRequests(reqs);
-        if (activeId && !convos.some((c) => c.id === activeId)) {
-          setActiveId(null);
-        }
-      });
-    };
-    const t = setInterval(poll, 15000);
-    return () => { activeFlag = false; clearInterval(t); };
-  }, [user?.uid, activeId]);
+  }, [messages, activeId, activeRequestId]);
 
   if (!user) {
     return (
@@ -108,11 +97,29 @@ function ChatInner() {
 
   const otherName = (c: Conversacion) => (c.clientId === user.uid ? c.lawyerName : c.clientName);
 
+  const initialsOf = (name: string) => name.trim().split(' ').map((x) => x[0]).join('').slice(0, 2).toUpperCase() || '?';
+
+  const senderOf = (m: Mensaje) => {
+    const client = profileCache[active?.clientId ?? ''] ?? {};
+    const lawyer = profileCache[active?.lawyerId ?? ''] ?? {};
+    const isClient = m.senderId === active?.clientId;
+    const name = m.senderName || (isClient ? (client.displayName || active?.clientName || 'Usuario') : (lawyer.displayName || active?.lawyerName || 'Abogado'));
+    const photo = m.senderPhotoURL || (isClient ? client.photoURL || null : lawyer.photoURL || null);
+    return { name, photo };
+  };
+
+  const goToProfile = (senderId: string) => {
+    if (senderId === user.uid) { router.push('/perfil'); return; }
+    const isLawyer = lawyers.some((l) => (l as Lawyer & { uid?: string }).uid === senderId);
+    if (isLawyer) { router.push(`/abogados?abogado=${senderId}`); return; }
+    router.push('/perfil');
+  };
+
   const handleSend = async () => {
     if (!activeId || !draft.trim() || sending) return;
     setSending(true);
     try {
-      await sendMessage(activeId, user.uid, draft.trim());
+      await sendMessage(activeId, user.uid, draft.trim(), user.displayName || 'Usuario VARIUS', user.photoURL ?? '');
       setDraft('');
     } finally {
       setSending(false);
@@ -167,6 +174,21 @@ function ChatInner() {
     }
   };
 
+  const handleClose = async () => {
+    if (!active || active.lawyerId !== user.uid || closing) return;
+    if (!window.confirm('¿Finalizar esta asesoría? Se cerrará el chat y ya no se podrán enviar mensajes.')) return;
+    setClosing(true);
+    try {
+      await finalizarConversacion(active.id);
+    } catch {
+      alert('No se pudo finalizar la asesoría.');
+    } finally {
+      setClosing(false);
+    }
+  };
+
+  const isClosed = active?.status === 'finalizada';
+
   return (
     <section className="mensajes-page">
       <div className="mensajes-head">
@@ -207,7 +229,7 @@ function ChatInner() {
                   className={`mensaje-item ${c.id === activeId ? 'active' : ''}`}
                   onClick={() => { setActiveId(c.id); setActiveRequestId(null); }}
                 >
-                  <b>{otherName(c)}</b>
+                  <b>{otherName(c)}{c.status === 'finalizada' && <em className="mchat-badge">Finalizada</em>}</b>
                   <span>{c.lastMessage}</span>
                   <small>{new Date(c.lastMessageAt).toLocaleDateString('es-EC', { day: 'numeric', month: 'short' })}</small>
                 </button>
@@ -266,12 +288,19 @@ function ChatInner() {
           ) : (
             <>
               <div className="mensajes-chat-head">
-                <span>{otherName(active)}</span>
-                {active.clientId === user.uid && (
+                <span>
+                  {otherName(active)}
+                  {isClosed && <em className="mchat-badge">Finalizada</em>}
+                </span>
+                {active.lawyerId === user.uid ? (
+                  <button onClick={handleClose} disabled={closing || isClosed} style={{ fontSize: 12, color: isClosed ? '#aaa' : 'var(--wine)', cursor: isClosed ? 'default' : 'pointer' }}>
+                    {closing ? 'Finalizando…' : 'Finalizar asesoría'}
+                  </button>
+                ) : active.clientId === user.uid ? (
                   <button onClick={() => setLawyerModal(true)} style={{ fontSize: 12, color: 'var(--wine)' }}>
                     Buscar otro abogado
                   </button>
-                )}
+                ) : null}
               </div>
               <div className="mensajes-chat-body" ref={chatBodyRef}>
                 {messages.length === 0 && (
@@ -279,23 +308,53 @@ function ChatInner() {
                     Asesoría iniciada. Presenta tu consulta al abogado.
                   </div>
                 )}
-                {messages.map((m) => (
-                  <div key={m.id} className={`mensaje ${m.senderId === user.uid ? 'user' : 'ai'}`}>
-                    <div className="msg-content"><FormattedText text={m.text} /></div>
+                {messages.map((m) => {
+                  const mine = m.senderId === user.uid;
+                  const sender = senderOf(m);
+                  return (
+                    <div key={m.id} className={`mchat ${mine ? 'mine' : ''}`}>
+                      <div className="mchat-avatar">
+                        {sender.photo ? (
+                          <img src={sender.photo} alt="" />
+                        ) : (
+                          <span style={{ background: mine ? '#c2185b' : '#d8ad96' }}>{initialsOf(sender.name)}</span>
+                        )}
+                      </div>
+                      <div className="mchat-col">
+                        <div className="mchat-meta">
+                          <button type="button" className="mchat-name" onClick={() => goToProfile(m.senderId)}>
+                            {sender.name}
+                          </button>
+                          <span className="mchat-time">{new Date(m.createdAt).toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' })}</span>
+                        </div>
+                        <div className="mchat-bubble"><FormattedText text={m.text} /></div>
+                      </div>
+                    </div>
+                  );
+                })}
+                {isClosed && (
+                  <div style={{ textAlign: 'center', fontSize: 12, color: '#999', padding: '20px 0' }}>
+                    Esta asesoría fue finalizada por el abogado.
                   </div>
-                ))}
+                )}
               </div>
-              <div className="mensajes-composer">
-                <input
-                  value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void handleSend(); } }}
-                  placeholder="Escribe tu consulta…"
-                />
-                <button className="landing-btn primary compact" onClick={handleSend} disabled={sending || !draft.trim()}>
-                  <Send size={15} />
-                </button>
-              </div>
+              {isClosed ? (
+                <div style={{ padding: '14px 16px', textAlign: 'center', fontSize: 12, color: '#999', borderTop: '1px solid var(--line)' }}>
+                  Chat cerrado — la asesoría fue finalizada.
+                </div>
+              ) : (
+                <div className="mensajes-composer">
+                  <input
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void handleSend(); } }}
+                    placeholder="Escribe tu consulta…"
+                  />
+                  <button className="landing-btn primary compact" onClick={handleSend} disabled={sending || !draft.trim()}>
+                    <Send size={15} />
+                  </button>
+                </div>
+              )}
             </>
           )}
         </div>

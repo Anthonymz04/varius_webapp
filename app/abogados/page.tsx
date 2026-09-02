@@ -19,6 +19,7 @@ function AbogadosContent() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
   const initialSearch = searchParams.get('search') || '';
+  const abogadoParam = searchParams.get('abogado') || '';
 
   const [allLawyers, setAllLawyers] = useState<LawyerFull[]>([]);
   const [loadingList, setLoadingList] = useState(true);
@@ -44,6 +45,13 @@ function AbogadosContent() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (abogadoParam && allLawyers.length > 0) {
+      const found = allLawyers.find((l) => l.uid === abogadoParam || l.id === abogadoParam);
+      if (found) setSelectedLawyer(found);
+    }
+  }, [abogadoParam, allLawyers]);
 
   useEffect(() => {
     if (initialSearch) setSearch(initialSearch);

@@ -95,11 +95,14 @@ export interface Conversacion {
   lastMessage: string;
   lastMessageAt: number;
   createdAt: number;
+  status?: 'activa' | 'finalizada';
 }
 
 export type Mensaje = {
   id: string;
   senderId: string;
+  senderName?: string;
+  senderPhotoURL?: string;
   text: string;
   createdAt: number;
 };
@@ -121,6 +124,7 @@ export async function createConversacion(input: {
     lastMessage: 'Asesoría iniciada',
     lastMessageAt: Date.now(),
     createdAt: Date.now(),
+    status: 'activa',
   });
   await updateDoc(doc(db, 'consultationRequests', input.requestId), { conversacionId: docRef.id, status: 'aceptada' });
   await Promise.allSettled([
@@ -130,14 +134,42 @@ export async function createConversacion(input: {
   return docRef.id;
 }
 
-export async function sendMessage(conversacionId: string, senderId: string, text: string) {
+export async function sendMessage(conversacionId: string, senderId: string, text: string, senderName?: string, senderPhotoURL?: string) {
   if (!db) return;
   const msgRef = collection(db, 'conversations', conversacionId, 'messages');
-  await addDoc(msgRef, { senderId, text, createdAt: Date.now() });
+  await addDoc(msgRef, { senderId, senderName: senderName ?? '', senderPhotoURL: senderPhotoURL ?? '', text, createdAt: Date.now() });
   await updateDoc(doc(db, 'conversations', conversacionId), {
     lastMessage: text,
     lastMessageAt: Date.now(),
   });
+}
+
+export async function finalizarConversacion(conversacionId: string): Promise<void> {
+  if (!db) return;
+  await updateDoc(doc(db, 'conversations', conversacionId), {
+    status: 'finalizada',
+    lastMessage: 'Asesoría finalizada',
+    lastMessageAt: Date.now(),
+  });
+}
+
+export async function fetchMessages(conversacionId: string): Promise<Mensaje[]> {
+  if (!db) return [];
+  try {
+    const q = query(collection(db, 'conversations', conversacionId, 'messages'), orderBy('createdAt', 'asc'), limit(200));
+    const snap = await getDocs(q);
+    return snap.docs.map((d) => {
+      const data = d.data();
+      return {
+        id: d.id,
+        senderId: (data.senderId as string) ?? '',
+        senderName: (data.senderName as string) ?? '',
+        senderPhotoURL: (data.senderPhotoURL as string) ?? '',
+        text: (data.text as string) ?? '',
+        createdAt: typeof data.createdAt === 'number' ? data.createdAt : Date.now(),
+      };
+    });
+  } catch { return []; }
 }
 
 export function subscribeMessages(conversacionId: string, cb: (msgs: Mensaje[]) => void): () => void {
@@ -147,6 +179,8 @@ export function subscribeMessages(conversacionId: string, cb: (msgs: Mensaje[]) 
     const msgs = snap.docs.map((d) => ({
       id: d.id,
       senderId: (d.data().senderId as string) ?? '',
+      senderName: (d.data().senderName as string) ?? '',
+      senderPhotoURL: (d.data().senderPhotoURL as string) ?? '',
       text: (d.data().text as string) ?? '',
       createdAt: typeof d.data().createdAt === 'number' ? d.data().createdAt : Date.now(),
     }));
@@ -166,4 +200,44 @@ export async function fetchConversaciones(uid: string): Promise<Conversacion[]> 
     list.sort((a, b) => b.lastMessageAt - a.lastMessageAt);
     return list;
   } catch { return []; }
+}
+
+export function subscribeConversaciones(uid: string, cb: (list: Conversacion[]) => void): () => void {
+  if (!db) return () => {};
+  const q = query(collection(db, 'conversations'), where('participantIds', 'array-contains', uid));
+  return onSnapshot(q, (snap) => {
+    const list = snap.docs.map((d) => {
+      const data = d.data();
+      return { id: d.id, ...data } as Conversacion;
+    });
+    list.sort((a, b) => b.lastMessageAt - a.lastMessageAt);
+    cb(list);
+  }, () => {});
+}
+
+export function subscribeRequests(uid: string, cb: (list: AsesoriaRequest[]) => void): () => void {
+  if (!db) return () => {};
+  const store = new Map<string, AsesoriaRequest>();
+  const emit = () => {
+    const list = Array.from(store.values()).sort((a, b) => b.createdAt - a.createdAt);
+    cb(list);
+  };
+  const handle = (snap: { docs: { data: () => unknown; id: string }[] }) => {
+    snap.docs.forEach((d) => {
+      const data = d.data() as object;
+      store.set(d.id, { id: d.id, ...data } as AsesoriaRequest);
+    });
+    emit();
+  };
+  const handleRemove = (snap: { docChanges: () => { type: string; doc: { data: () => unknown; id: string } }[] }) => {
+    snap.docChanges().forEach((change) => {
+      if (change.type === 'removed') store.delete(change.doc.id);
+    });
+    emit();
+  };
+  const unsubs: (() => void)[] = [
+    onSnapshot(query(collection(db, 'consultationRequests'), where('clientId', '==', uid)), (s) => { handle(s); handleRemove(s as never); }, () => {}),
+    onSnapshot(query(collection(db, 'consultationRequests'), where('lawyerId', '==', uid)), (s) => { handle(s); handleRemove(s as never); }, () => {}),
+  ];
+  return () => unsubs.forEach((u) => u());
 }
