@@ -82,6 +82,24 @@ function ChatInner() {
   }, [active?.clientId, active?.lawyerId]);
 
   useEffect(() => {
+    if (!user) return;
+    const ids = new Set<string>();
+    conversaciones.forEach((c) => { ids.add(c.clientId); ids.add(c.lawyerId); });
+    requests.forEach((r) => { ids.add(r.clientId); ids.add(r.lawyerId); });
+    const missing = [...ids].filter((id) => id && id !== user.uid && !profileCache[id]);
+    if (missing.length === 0) return;
+    let activeFlag = true;
+    Promise.all(missing.map((id) => fetchUserProfile(id).catch(() => null)))
+      .then((profiles) => {
+        if (!activeFlag) return;
+        const next = { ...profileCache };
+        missing.forEach((id, i) => { if (profiles[i]) next[id] = profiles[i] as { displayName?: string; photoURL?: string | null }; });
+        setProfileCache(next);
+      });
+    return () => { activeFlag = false; };
+  }, [user?.uid, conversaciones, requests]);
+
+  useEffect(() => {
     const el = chatBodyRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages, activeId, activeRequestId]);
@@ -95,7 +113,20 @@ function ChatInner() {
     );
   }
 
-  const otherName = (c: Conversacion) => (c.clientId === user.uid ? c.lawyerName : c.clientName);
+  const otherName = (c: Conversacion) => {
+    if (c.clientId === user.uid) return c.lawyerName || 'Abogado';
+    const client = profileCache[c.clientId];
+    return client?.displayName || c.clientName || 'Usuario';
+  };
+
+  const requestCounterpartName = (r: AsesoriaRequest) => {
+    const iAmLawyer = r.lawyerId === user.uid;
+    if (iAmLawyer) {
+      const client = profileCache[r.clientId];
+      return client?.displayName || r.clientName || 'Un usuario';
+    }
+    return r.lawyerName || 'Abogado';
+  };
 
   const initialsOf = (name: string) => name.trim().split(' ').map((x) => x[0]).join('').slice(0, 2).toUpperCase() || '?';
 
@@ -216,7 +247,7 @@ function ChatInner() {
                     className={`mensaje-item ${activeRequestId === r.id ? 'active' : ''}`}
                     onClick={() => { setActiveRequestId(r.id); setActiveId(null); }}
                   >
-                    <b>{iAmLawyer ? `${r.clientName} busca asesoría` : `Solicitud con ${r.lawyerName}`}</b>
+                    <b>{iAmLawyer ? `${requestCounterpartName(r)} busca asesoría` : `Solicitud con ${requestCounterpartName(r)}`}</b>
                     <span>{iAmLawyer ? 'Responder solicitud' : 'Esperando respuesta del abogado'}</span>
                     <small>{new Date(r.createdAt).toLocaleDateString('es-EC', { day: 'numeric', month: 'short' })}</small>
                   </button>
@@ -250,13 +281,13 @@ function ChatInner() {
               return (
                 <>
                   <div className="mensajes-chat-head">
-                    <span>{iAmLawyer ? `Solicitud de ${activeRequest.clientName || 'usuario'}` : `Solicitud con ${activeRequest.lawyerName}`}</span>
+                    <span>{iAmLawyer ? `Solicitud de ${requestCounterpartName(activeRequest)}` : `Solicitud con ${requestCounterpartName(activeRequest)}`}</span>
                   </div>
                   <div className="mensajes-chat-body" style={{ display: 'grid', placeItems: 'center', textAlign: 'center' }}>
                     <div style={{ maxWidth: 420, padding: 30 }}>
                       <MessageCircle size={40} style={{ color: 'var(--wine)', margin: '0 auto 14px' }} />
                       <b style={{ fontSize: 15, display: 'block', marginBottom: 6 }}>
-                        {iAmLawyer ? `${activeRequest.clientName || 'Un usuario'} te ha solicitado una asesoría` : `Solicitud enviada a ${activeRequest.lawyerName}`}
+                        {iAmLawyer ? `${requestCounterpartName(activeRequest)} te ha solicitado una asesoría` : `Solicitud enviada a ${requestCounterpartName(activeRequest)}`}
                       </b>
                       {activeRequest.topic && (
                         <p style={{ fontSize: 13, color: '#666', background: '#faf7f7', border: '1px solid var(--line)', borderRadius: 10, padding: '12px 14px', lineHeight: 1.5 }}>

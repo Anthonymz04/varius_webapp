@@ -53,14 +53,15 @@ export async function createConsultationRequest(
   uid: string,
   userEmail: string,
   lawyer: Lawyer,
-  lawyerEmail?: string
+  lawyerEmail?: string,
+  userName?: string
 ): Promise<void> {
   if (!db) throw new Error('Firebase no está configurado');
   const lawyerUid = (lawyer as Lawyer & { uid?: string }).uid ?? '';
   if (uid === lawyerUid) throw new Error('No puedes solicitar asesoría a ti mismo.');
   await addDoc(collection(db, 'consultationRequests'), {
     clientId: uid,
-    clientName: '',
+    clientName: userName ?? '',
     clientEmail: userEmail,
     lawyerId: lawyerUid,
     lawyerName: lawyer.name,
@@ -72,6 +73,8 @@ export async function createConsultationRequest(
   await Promise.allSettled([
     createNotification(uid, uid, 'asesoria', 'Solicitud de asesoría enviada', `Tu solicitud con ${lawyer.name} (${lawyer.role}) quedó registrada el ${fecha}.`),
     addHistory(uid, 'asesoria', `Solicitó asesoría con ${lawyer.name} (${lawyer.role})`),
+    createNotification(lawyerUid, uid, 'asesoria', `${userName || 'Un usuario'} busca asesoría`, `${userName || 'Un usuario'} te ha solicitado una asesoría jurídica.`),
+    addHistory(lawyerUid, 'asesoria', `Recibió solicitud de ${userName || 'un usuario'}`),
   ]);
 }
 

@@ -73,7 +73,7 @@ function AbogadosContent() {
     }
     setSending(true);
     try {
-      await createConsultationRequest(user.uid, user.email ?? '', lawyer);
+      await createConsultationRequest(user.uid, user.email ?? '', lawyer, undefined, user.displayName ?? '');
       setToastMessage(`Solicitud enviada a ${lawyer.name}. Te contactaremos a ${user.email}.`);
       setSelectedLawyer(null);
     } catch (e) {
