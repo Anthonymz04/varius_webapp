@@ -219,7 +219,7 @@ function ChatInner() {
     if (!activeId) return;
     try {
       await togglePinMessage(activeId, m.id, !m.pinned);
-      setPinned((prev) => m.pinned ? prev.filter((p) => p.id !== m.id) : [...prev, m]);
+      setPinned((prev) => m.pinned ? prev.filter((p) => p.id !== m.id) : prev.some((p) => p.id === m.id) ? prev : [...prev, m]);
       setMessages((prev) => prev.map((x) => x.id === m.id ? { ...x, pinned: !m.pinned } : x));
     } catch {
       alert('No se pudo anclar el mensaje.');
@@ -294,21 +294,27 @@ function ChatInner() {
 
   const isClosed = active?.status === 'finalizada';
   const isImage = (m: Mensaje) => (m.fileType ?? '').startsWith('image/');
+  const extOf = (name: string) => { const i = name.lastIndexOf('.'); return i > 0 ? name.slice(i).toLowerCase() : ''; };
 
   const renderFile = (m: Mensaje) => {
     if (!m.fileURL) return null;
+    const ext = extOf(m.fileName || '');
     if (isImage(m)) {
       return (
         <div className="mchat-file">
           <a href={m.fileURL} target="_blank" rel="noopener noreferrer" title="Abrir imagen">
             <img src={m.fileURL} alt={m.fileName || 'Imagen'} className="mchat-img" />
           </a>
-          <a className="mchat-dl" href={m.fileURL} download={m.fileName} title="Descargar"><Download size={13} /> Descargar</a>
+          <div className="mchat-file-actions">
+            <span className="mchat-file-ext">{ext}</span>
+            <a className="mchat-dl" href={m.fileURL} download={m.fileName} title="Descargar"><Download size={13} /> Descargar</a>
+          </div>
         </div>
       );
     }
     return (
       <div className="mchat-file">
+        <span className="mchat-file-ext mchat-file-ext-doc">{ext}</span>
         <FileText size={22} className="mchat-file-icon" />
         <div className="mchat-file-meta">
           <b>{m.fileName || 'Archivo'}</b>
@@ -472,7 +478,7 @@ function ChatInner() {
                     <b>Anclados</b>
                     {pinned.map((p) => (
                       <span key={p.id} className="mchat-pin-chip">
-                        {p.fileName ? `📎 ${p.fileName}` : p.text}
+                        <span className="mchat-pin-text">{p.fileName ? `📎 ${p.fileName}` : p.text}</span>
                         <button onClick={() => void handleTogglePin(p)} aria-label="Desanclar"><PinOff size={11} /></button>
                       </span>
                     ))}
