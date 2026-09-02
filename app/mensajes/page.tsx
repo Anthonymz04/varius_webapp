@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Check, Download, FileText, MessageCircle, Paperclip, Pin, PinOff, Reply, Search, Send, X } from 'lucide-react';
+import { ArrowLeft, Check, ChevronDown, ChevronRight, Download, FileText, MessageCircle, Paperclip, Pin, PinOff, Reply, Search, Send, X } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import {
   AsesoriaRequest,
@@ -44,6 +44,8 @@ function ChatInner() {
   const [requests, setRequests] = useState<AsesoriaRequest[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeRequestId, setActiveRequestId] = useState<string | null>(null);
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({ activas: false, finalizadas: false });
+  const [flashMsgId, setFlashMsgId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Mensaje[]>([]);
   const [pinned, setPinned] = useState<Mensaje[]>([]);
   const [profileCache, setProfileCache] = useState<Record<string, { displayName?: string; photoURL?: string | null }>>({});
@@ -296,6 +298,20 @@ function ChatInner() {
   const isImage = (m: Mensaje) => (m.fileType ?? '').startsWith('image/');
   const extOf = (name: string) => { const i = name.lastIndexOf('.'); return i > 0 ? name.slice(i).toLowerCase() : ''; };
 
+  const goToPinned = (m: Mensaje) => {
+    if (activeId) {
+      setActiveId(activeId);
+    } else {
+      setActiveId(active?.id ?? m.id);
+    }
+    setFlashMsgId(m.id);
+    setTimeout(() => {
+      const el = document.getElementById(`msg-${m.id}`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 150);
+    setTimeout(() => setFlashMsgId(null), 2200);
+  };
+
   const renderFile = (m: Mensaje) => {
     if (!m.fileURL) return null;
     const ext = extOf(m.fileName || '');
@@ -374,10 +390,16 @@ function ChatInner() {
               {(() => {
                 const activas = conversaciones.filter((c) => c.status !== 'finalizada');
                 const finalizadas = conversaciones.filter((c) => c.status === 'finalizada');
+                const toggle = (key: 'activas' | 'finalizadas') => setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
                 return (
                   <>
-                    {activas.length > 0 && <div className="mensajes-group">Asesorías activas</div>}
-                    {activas.map((c) => (
+                    {activas.length > 0 && (
+                      <button type="button" className="mensajes-group" onClick={() => toggle('activas')}>
+                        <span>Asesorías activas ({activas.length})</span>
+                        {collapsed.activas ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
+                      </button>
+                    )}
+                    {!collapsed.activas && activas.map((c) => (
                       <button
                         key={c.id}
                         className={`mensaje-item ${c.id === activeId ? 'active' : ''}`}
@@ -388,8 +410,13 @@ function ChatInner() {
                         <small>{new Date(c.lastMessageAt).toLocaleDateString('es-EC', { day: 'numeric', month: 'short' })}</small>
                       </button>
                     ))}
-                    {finalizadas.length > 0 && <div className="mensajes-group">Finalizadas</div>}
-                    {finalizadas.map((c) => (
+                    {finalizadas.length > 0 && (
+                      <button type="button" className="mensajes-group" onClick={() => toggle('finalizadas')}>
+                        <span>Finalizadas ({finalizadas.length})</span>
+                        {collapsed.finalizadas ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
+                      </button>
+                    )}
+                    {!collapsed.finalizadas && finalizadas.map((c) => (
                       <button
                         key={c.id}
                         className={`mensaje-item ${c.id === activeId ? 'active' : ''}`}
@@ -477,9 +504,9 @@ function ChatInner() {
                     <Pin size={13} />
                     <b>Anclados</b>
                     {pinned.map((p) => (
-                      <span key={p.id} className="mchat-pin-chip">
+                      <span key={p.id} className="mchat-pin-chip" onClick={() => goToPinned(p)}>
                         <span className="mchat-pin-text">{p.fileName ? `📎 ${p.fileName}` : p.text}</span>
-                        <button onClick={() => void handleTogglePin(p)} aria-label="Desanclar"><PinOff size={11} /></button>
+                        <button onClick={(e) => { e.stopPropagation(); void handleTogglePin(p); }} aria-label="Desanclar"><PinOff size={11} /></button>
                       </span>
                     ))}
                   </div>
@@ -493,7 +520,7 @@ function ChatInner() {
                   const mine = m.senderId === user.uid;
                   const sender = senderOf(m);
                   return (
-                    <div key={m.id} className={`mchat ${mine ? 'mine' : ''}`}>
+                    <div key={m.id} id={`msg-${m.id}`} className={`mchat ${mine ? 'mine' : ''} ${flashMsgId === m.id ? 'mchat-flash' : ''}`}>
                       <div className="mchat-avatar">
                         {sender.photo ? (
                           <img src={sender.photo} alt="" />
@@ -510,7 +537,7 @@ function ChatInner() {
                           {m.pinned && <Pin size={11} className="mchat-pin-ind" />}
                         </div>
                         {renderReplyQuote(m)}
-                        <div className="mchat-bubble">
+                        <div className={`mchat-bubble ${flashMsgId === m.id ? 'mchat-flash-bubble' : ''}`}>
                           {renderFile(m)}
                           {m.text && <FormattedText text={m.text} />}
                         </div>

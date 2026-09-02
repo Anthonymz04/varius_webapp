@@ -4167,15 +4167,18 @@ select.select-field:focus {
 .mensajes-layout {
   display: flex;
   gap: 20px;
-  min-height: 500px;
+  height: min(68vh, 680px);
+  min-height: 480px;
 }
 
 .mensajes-list {
-  width: 260px;
+  width: 280px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   gap: 6px;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .mensaje-item {
@@ -4214,12 +4217,27 @@ select.select-field:focus {
 }
 
 .mensajes-group {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: #b58a99;
   margin: 10px 2px 2px;
+  cursor: pointer;
+  user-select: none;
+  border: none;
+  background: none;
+  padding: 0;
+  text-align: left;
+  width: 100%;
+}
+
+.mensajes-group:hover {
+  color: var(--wine);
 }
 
 .mensajes-group:first-child {
@@ -4597,6 +4615,7 @@ select.select-field:focus {
   font-size: 11px;
   color: #6b5a10;
   max-width: 240px;
+  cursor: pointer;
 }
 
 .mchat-pin-text {
@@ -4615,6 +4634,25 @@ select.select-field:focus {
   display: inline-flex;
   cursor: pointer;
   color: #a8933a;
+}
+
+.mchat-flash {
+  animation: mchat-flash-anim 2s ease;
+}
+
+@keyframes mchat-flash-anim {
+  0% { background-color: rgba(255, 213, 170, 0.6); }
+  100% { background-color: transparent; }
+}
+
+.mchat-bubble.mchat-flash-bubble {
+  animation: mchat-flash-bubble-anim 2s ease;
+  border-radius: 12px;
+}
+
+@keyframes mchat-flash-bubble-anim {
+  0% { box-shadow: 0 0 0 3px rgba(249, 168, 37, 0.6); }
+  100% { box-shadow: 0 0 0 3px transparent; }
 }
 
 .mchat-replybox {
