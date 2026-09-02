@@ -101,3 +101,8 @@ export async function updateLawyerPrice(uid: string, price: string): Promise<voi
   await updateDoc(doc(db, 'lawyers', uid), { price });
 }
 
+export async function updateLawyerCity(uid: string, city: string): Promise<void> {
+  if (!db) throw new Error('Firebase no está configurado');
+  await updateDoc(doc(db, 'lawyers', uid), { city });
+}
+

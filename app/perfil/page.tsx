@@ -14,7 +14,7 @@ import { HistoryItem, fetchHistory } from '@/lib/firebase/notifications';
 import { fetchConsultations } from '@/lib/firebase/consultations';
 import { uploadCover, uploadAvatar, uploadCertificate, uploadCV } from '@/lib/firebase/uploads';
 import { AsesoriaRequest, createConversacion, fetchLawyerRequests, updateRequestStatus } from '@/lib/firebase/asesorias';
-import { updateLawyerPrice } from '@/lib/firebase/marketplace';
+import { updateLawyerPrice, updateLawyerCity } from '@/lib/firebase/marketplace';
 import Skeleton from '@/app/components/Skeleton';
 import {
   LawyerVerification,
@@ -197,9 +197,14 @@ export default function PerfilPage() {
       }
       if (editRole !== role) fields.role = editRole;
       if (editRole === 'student') { fields.university = editUniversity.trim(); fields.career = editCareer.trim(); }
-      if (editCity !== (profile?.city ?? '')) fields.city = editCity.trim();
+      const newCity = editCity.trim();
+      const prevCity = (profile?.city ?? '').trim();
+      if (newCity !== prevCity) fields.city = newCity;
       if (editBio !== (profile?.bio ?? '')) fields.bio = editBio.trim();
       await updateProfileFields(user.uid, fields);
+      if (newCity !== prevCity && role === 'lawyer') {
+        await updateLawyerCity(user.uid, newCity);
+      }
       await reloadRole();
       setProfile((p) => p ? { ...p, ...fields } : p);
       setEditing(false);

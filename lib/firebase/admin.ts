@@ -36,6 +36,8 @@ export async function approveVerification(v: LawyerVerification, adminUid: strin
   if (!db) throw new Error('Firebase no está configurado.');
   const admin = await getDoc(doc(db, 'users', adminUid));
   const adminName_ = admin.exists() ? (admin.data().name as string) || adminName : adminName;
+  const userSnap = await getDoc(doc(db, 'users', v.uid));
+  const userCity = userSnap.exists() ? ((userSnap.data() as Record<string, string>).city ?? '') : '';
   await setDoc(doc(db, 'users', v.uid), {
     role: 'lawyer',
     nationalId: v.cedula,
@@ -49,7 +51,7 @@ export async function approveVerification(v: LawyerVerification, adminUid: strin
     uid: v.uid,
     name: v.fullName,
     role: 'Derecho',
-    city: '',
+    city: userCity,
     rating: 'Nuevo',
     reviews: '0 reseñas',
     price: v.price || '$30 / consulta',
