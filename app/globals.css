@@ -4394,6 +4394,277 @@ select.select-field:focus {
   margin-left: 8px;
 }
 
+.mchat-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 3px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.mchat:hover .mchat-actions,
+.mchat.mine:hover .mchat-actions {
+  opacity: 1;
+}
+
+.mchat-actions button {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-size: 11px;
+  color: #b58a99;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mchat-actions button:hover {
+  color: var(--wine);
+  text-decoration: underline;
+}
+
+.mchat.mine .mchat-actions {
+  justify-content: flex-end;
+}
+
+.mchat-reply {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  background: rgba(0, 0, 0, 0.04);
+  border-left: 3px solid var(--wine);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  max-width: 320px;
+  color: var(--ink);
+}
+
+.mchat-reply.mine {
+  background: rgba(255, 255, 255, 0.14);
+  border-left-color: #ffd6e6;
+  color: #fff;
+}
+
+.mchat-reply b {
+  display: block;
+  font-size: 11px;
+  color: var(--wine);
+}
+
+.mchat-reply.mine b {
+  color: #ffd6e6;
+}
+
+.mchat-reply p {
+  margin: 2px 0 0;
+  font-size: 12px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.mchat-file {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.mchat-img {
+  max-width: 260px;
+  max-height: 220px;
+  border-radius: 10px;
+  display: block;
+  object-fit: cover;
+  cursor: zoom-in;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.mchat.mine .mchat-img {
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.mchat-file-icon {
+  color: #8c6a76;
+  flex-shrink: 0;
+}
+
+.mchat-file-meta {
+  min-width: 0;
+  flex: 1;
+}
+
+.mchat-file-meta b {
+  display: block;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mchat-file-meta span {
+  font-size: 11px;
+  color: #aaa;
+}
+
+.mchat-dl {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--wine);
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.mchat.mine .mchat-dl {
+  color: #ffd6e6;
+}
+
+.mchat-pin-ind {
+  color: #c9a227;
+  flex-shrink: 0;
+}
+
+.mchat-pinnedbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px dashed #e3c96a;
+  background: #fffbe9;
+  border-radius: 10px;
+  font-size: 12px;
+  color: #8a7515;
+  margin-bottom: 8px;
+}
+
+.mchat-pinnedbar > b {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-right: 2px;
+}
+
+.mchat-pin-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #fff;
+  border: 1px solid #eee0a0;
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 11px;
+  color: #6b5a10;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mchat-pin-chip button {
+  background: none;
+  border: none;
+  padding: 0;
+  display: inline-flex;
+  cursor: pointer;
+  color: #a8933a;
+}
+
+.mchat-replybox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fdf6f8;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: 8px 16px;
+  font-size: 12px;
+  color: #7d5c68;
+}
+
+.mchat-replybox > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.mchat-replybox b {
+  display: block;
+  font-size: 11px;
+  color: var(--wine);
+}
+
+.mchat-replybox p {
+  margin: 2px 0 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mchat-replybox button {
+  background: none;
+  border: none;
+  color: #aaa;
+  cursor: pointer;
+  display: inline-flex;
+  padding: 4px;
+}
+
+.mchat-replybox button:hover {
+  color: var(--wine);
+}
+
+.mchat-uploadbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  font-size: 11px;
+  color: #888;
+  border-top: 1px solid var(--line);
+}
+
+.mchat-uploadbar > div {
+  flex: 1;
+  height: 4px;
+  background: #f0e4e8;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.mchat-uploadbar i {
+  display: block;
+  height: 100%;
+  background: var(--wine);
+  transition: width 0.2s;
+}
+
+.mchat-paperclip {
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #8c6a76;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.mchat-paperclip:hover {
+  border-color: var(--wine);
+  color: var(--wine);
+}
+
 @media (max-width: 700px) {
   .mensajes-layout {
     flex-direction: column;

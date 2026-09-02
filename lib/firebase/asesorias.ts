@@ -105,6 +105,12 @@ export type Mensaje = {
   senderPhotoURL?: string;
   text: string;
   createdAt: number;
+  fileURL?: string;
+  fileName?: string;
+  fileType?: string;
+  fileSize?: number;
+  replyTo?: { msgId: string; text: string; senderName: string };
+  pinned?: boolean;
 };
 
 export async function createConversacion(input: {
@@ -134,14 +140,73 @@ export async function createConversacion(input: {
   return docRef.id;
 }
 
-export async function sendMessage(conversacionId: string, senderId: string, text: string, senderName?: string, senderPhotoURL?: string) {
+export type ChatMessageInput = {
+  text?: string;
+  fileURL?: string;
+  fileName?: string;
+  fileType?: string;
+  fileSize?: number;
+  replyTo?: { msgId: string; text: string; senderName: string };
+};
+
+export async function sendChatMessage(
+  conversacionId: string,
+  senderId: string,
+  input: ChatMessageInput,
+  senderName?: string,
+  senderPhotoURL?: string
+) {
   if (!db) return;
   const msgRef = collection(db, 'conversations', conversacionId, 'messages');
-  await addDoc(msgRef, { senderId, senderName: senderName ?? '', senderPhotoURL: senderPhotoURL ?? '', text, createdAt: Date.now() });
+  await addDoc(msgRef, {
+    senderId,
+    senderName: senderName ?? '',
+    senderPhotoURL: senderPhotoURL ?? '',
+    text: input.text ?? '',
+    createdAt: Date.now(),
+    fileURL: input.fileURL ?? '',
+    fileName: input.fileName ?? '',
+    fileType: input.fileType ?? '',
+    fileSize: input.fileSize ?? 0,
+    replyTo: input.replyTo ?? null,
+    pinned: false,
+  });
   await updateDoc(doc(db, 'conversations', conversacionId), {
-    lastMessage: text,
+    lastMessage: input.fileName || input.text || 'Archivo enviado',
     lastMessageAt: Date.now(),
   });
+}
+
+export async function togglePinMessage(conversacionId: string, messageId: string, pinned: boolean): Promise<void> {
+  if (!db) return;
+  await updateDoc(doc(db, 'conversations', conversacionId, 'messages', messageId), { pinned });
+}
+
+export async function fetchPinnedMessages(conversacionId: string): Promise<Mensaje[]> {
+  if (!db) return [];
+  try {
+    const q = query(collection(db, 'conversations', conversacionId, 'messages'), where('pinned', '==', true));
+    const snap = await getDocs(q);
+    const list = snap.docs.map((d) => {
+      const data = d.data();
+      return {
+        id: d.id,
+        senderId: (data.senderId as string) ?? '',
+        senderName: (data.senderName as string) ?? '',
+        senderPhotoURL: (data.senderPhotoURL as string) ?? '',
+        text: (data.text as string) ?? '',
+        createdAt: typeof data.createdAt === 'number' ? data.createdAt : Date.now(),
+        fileURL: (data.fileURL as string) ?? '',
+        fileName: (data.fileName as string) ?? '',
+        fileType: (data.fileType as string) ?? '',
+        fileSize: typeof data.fileSize === 'number' ? data.fileSize : 0,
+        replyTo: (data.replyTo as Mensaje['replyTo']) ?? undefined,
+        pinned: true,
+      };
+    });
+    list.sort((a, b) => a.createdAt - b.createdAt);
+    return list;
+  } catch { return []; }
 }
 
 export async function finalizarConversacion(conversacionId: string): Promise<void> {
@@ -167,6 +232,12 @@ export async function fetchMessages(conversacionId: string): Promise<Mensaje[]> 
         senderPhotoURL: (data.senderPhotoURL as string) ?? '',
         text: (data.text as string) ?? '',
         createdAt: typeof data.createdAt === 'number' ? data.createdAt : Date.now(),
+        fileURL: (data.fileURL as string) ?? '',
+        fileName: (data.fileName as string) ?? '',
+        fileType: (data.fileType as string) ?? '',
+        fileSize: typeof data.fileSize === 'number' ? data.fileSize : 0,
+        replyTo: (data.replyTo as Mensaje['replyTo']) ?? undefined,
+        pinned: data.pinned === true,
       };
     });
   } catch { return []; }
@@ -183,6 +254,12 @@ export function subscribeMessages(conversacionId: string, cb: (msgs: Mensaje[]) 
       senderPhotoURL: (d.data().senderPhotoURL as string) ?? '',
       text: (d.data().text as string) ?? '',
       createdAt: typeof d.data().createdAt === 'number' ? d.data().createdAt : Date.now(),
+      fileURL: (d.data().fileURL as string) ?? '',
+      fileName: (d.data().fileName as string) ?? '',
+      fileType: (d.data().fileType as string) ?? '',
+      fileSize: typeof d.data().fileSize === 'number' ? d.data().fileSize : 0,
+      replyTo: (d.data().replyTo as Mensaje['replyTo']) ?? undefined,
+      pinned: d.data().pinned === true,
     }));
     cb(msgs);
   }, () => cb([]));

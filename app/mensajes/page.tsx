@@ -3,15 +3,18 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Bot, Check, MessageCircle, Search, Send, X } from 'lucide-react';
+import { ArrowLeft, Check, Download, FileText, MessageCircle, Paperclip, Pin, PinOff, Reply, Search, Send, X } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import {
   AsesoriaRequest,
   Conversacion,
   Mensaje,
+  ChatMessageInput,
   createConversacion,
   fetchMessages,
-  sendMessage,
+  fetchPinnedMessages,
+  sendChatMessage,
+  togglePinMessage,
   subscribeMessages,
   subscribeConversaciones,
   subscribeRequests,
@@ -19,11 +22,19 @@ import {
   updateRequestStatus,
   finalizarConversacion,
 } from '@/lib/firebase/asesorias';
+import { uploadChatFile } from '@/lib/firebase/uploads';
 import { fetchLawyers, Lawyer } from '@/lib/firebase/marketplace';
 import { fetchUserProfile } from '@/lib/firebase/profile';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import FormattedText from '@/app/components/FormattedText';
+
+function formatSize(bytes: number): string {
+  if (!bytes) return '';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 function ChatInner() {
   const { user } = useAuth();
@@ -34,15 +45,20 @@ function ChatInner() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeRequestId, setActiveRequestId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Mensaje[]>([]);
+  const [pinned, setPinned] = useState<Mensaje[]>([]);
   const [profileCache, setProfileCache] = useState<Record<string, { displayName?: string; photoURL?: string | null }>>({});
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [replyingTo, setReplyingTo] = useState<Mensaje | null>(null);
   const [accepting, setAccepting] = useState(false);
   const [closing, setClosing] = useState(false);
   const [closeModal, setCloseModal] = useState(false);
   const [lawyers, setLawyers] = useState<Lawyer[]>([]);
   const [lawyerModal, setLawyerModal] = useState(false);
   const chatBodyRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const active = conversaciones.find((c) => c.id === activeId) ?? null;
   const activeRequest = requests.find((r) => r.id === activeRequestId) ?? null;
@@ -64,7 +80,12 @@ function ChatInner() {
     if (!activeId) return;
     let activeFlag = true;
     fetchMessages(activeId).then((list) => { if (activeFlag) setMessages(list); });
-    const unsub = subscribeMessages(activeId, (list) => { if (activeFlag) setMessages(list); });
+    fetchPinnedMessages(activeId).then((list) => { if (activeFlag) setPinned(list); });
+    const unsub = subscribeMessages(activeId, (list) => {
+      if (!activeFlag) return;
+      setMessages(list);
+      setPinned(list.filter((m) => m.pinned));
+    });
     return () => { activeFlag = false; unsub(); };
   }, [activeId]);
 
@@ -148,13 +169,60 @@ function ChatInner() {
   };
 
   const handleSend = async () => {
-    if (!activeId || !draft.trim() || sending) return;
+    if (!activeId || sending || uploading) return;
+    const text = draft.trim();
+    if (!text) return;
+    const input: ChatMessageInput = { text };
+    if (replyingTo) {
+      input.replyTo = { msgId: replyingTo.id, text: replyingTo.text || replyingTo.fileName || '', senderName: senderOf(replyingTo).name };
+    }
     setSending(true);
     try {
-      await sendMessage(activeId, user.uid, draft.trim(), user.displayName || 'Usuario VARIUS', user.photoURL ?? '');
+      await sendChatMessage(activeId, user.uid, input, user.displayName || 'Usuario VARIUS', user.photoURL ?? '');
       setDraft('');
+      setReplyingTo(null);
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleFilePicked = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !activeId || uploading) return;
+    setUploading(true);
+    setUploadProgress(0);
+    try {
+      const url = await uploadChatFile(activeId, file, setUploadProgress);
+      const input: ChatMessageInput = {
+        text: draft.trim(),
+        fileURL: url,
+        fileName: file.name,
+        fileType: file.type || 'application/octet-stream',
+        fileSize: file.size,
+      };
+      if (replyingTo) {
+        input.replyTo = { msgId: replyingTo.id, text: replyingTo.text || replyingTo.fileName || '', senderName: senderOf(replyingTo).name };
+      }
+      await sendChatMessage(activeId, user.uid, input, user.displayName || 'Usuario VARIUS', user.photoURL ?? '');
+      setDraft('');
+      setReplyingTo(null);
+    } catch {
+      alert('No se pudo subir el archivo.');
+    } finally {
+      setUploading(false);
+      setUploadProgress(0);
+    }
+  };
+
+  const handleTogglePin = async (m: Mensaje) => {
+    if (!activeId) return;
+    try {
+      await togglePinMessage(activeId, m.id, !m.pinned);
+      setPinned((prev) => m.pinned ? prev.filter((p) => p.id !== m.id) : [...prev, m]);
+      setMessages((prev) => prev.map((x) => x.id === m.id ? { ...x, pinned: !m.pinned } : x));
+    } catch {
+      alert('No se pudo anclar el mensaje.');
     }
   };
 
@@ -225,6 +293,44 @@ function ChatInner() {
   };
 
   const isClosed = active?.status === 'finalizada';
+  const isImage = (m: Mensaje) => (m.fileType ?? '').startsWith('image/');
+
+  const renderFile = (m: Mensaje) => {
+    if (!m.fileURL) return null;
+    if (isImage(m)) {
+      return (
+        <div className="mchat-file">
+          <a href={m.fileURL} target="_blank" rel="noopener noreferrer" title="Abrir imagen">
+            <img src={m.fileURL} alt={m.fileName || 'Imagen'} className="mchat-img" />
+          </a>
+          <a className="mchat-dl" href={m.fileURL} download={m.fileName} title="Descargar"><Download size={13} /> Descargar</a>
+        </div>
+      );
+    }
+    return (
+      <div className="mchat-file">
+        <FileText size={22} className="mchat-file-icon" />
+        <div className="mchat-file-meta">
+          <b>{m.fileName || 'Archivo'}</b>
+          {m.fileSize ? <span>{formatSize(m.fileSize)}</span> : null}
+        </div>
+        <a className="mchat-dl" href={m.fileURL} target="_blank" rel="noopener noreferrer" download={m.fileName} title="Descargar"><Download size={13} /> Descargar</a>
+      </div>
+    );
+  };
+
+  const renderReplyQuote = (m: Mensaje) => {
+    if (!m.replyTo) return null;
+    return (
+      <div className={`mchat-reply ${m.senderId === user.uid ? 'mine' : ''}`}>
+        <Reply size={11} />
+        <div>
+          <b>{m.replyTo.senderName || 'Mensaje'}</b>
+          <p>{m.replyTo.text || 'Archivo adjunto'}</p>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <section className="mensajes-page">
@@ -360,6 +466,18 @@ function ChatInner() {
                 ) : null}
               </div>
               <div className="mensajes-chat-body" ref={chatBodyRef}>
+                {pinned.length > 0 && (
+                  <div className="mchat-pinnedbar">
+                    <Pin size={13} />
+                    <b>Anclados</b>
+                    {pinned.map((p) => (
+                      <span key={p.id} className="mchat-pin-chip">
+                        {p.fileName ? `📎 ${p.fileName}` : p.text}
+                        <button onClick={() => void handleTogglePin(p)} aria-label="Desanclar"><PinOff size={11} /></button>
+                      </span>
+                    ))}
+                  </div>
+                )}
                 {messages.length === 0 && (
                   <div style={{ textAlign: 'center', fontSize: 12, color: '#999', padding: '30px 0' }}>
                     Asesoría iniciada. Presenta tu consulta al abogado.
@@ -383,8 +501,19 @@ function ChatInner() {
                             {sender.name}
                           </button>
                           <span className="mchat-time">{new Date(m.createdAt).toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' })}</span>
+                          {m.pinned && <Pin size={11} className="mchat-pin-ind" />}
                         </div>
-                        <div className="mchat-bubble"><FormattedText text={m.text} /></div>
+                        {renderReplyQuote(m)}
+                        <div className="mchat-bubble">
+                          {renderFile(m)}
+                          {m.text && <FormattedText text={m.text} />}
+                        </div>
+                        <div className="mchat-actions">
+                          <button onClick={() => setReplyingTo(m)} title="Responder"><Reply size={12} /> Responder</button>
+                          <button onClick={() => void handleTogglePin(m)} title={m.pinned ? 'Desanclar' : 'Anclar'}>
+                            {m.pinned ? <PinOff size={12} /> : <Pin size={12} />} {m.pinned ? 'Desanclar' : 'Anclar'}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );
@@ -400,17 +529,44 @@ function ChatInner() {
                   Chat cerrado — la asesoría fue finalizada.
                 </div>
               ) : (
-                <div className="mensajes-composer">
-                  <input
-                    value={draft}
-                    onChange={(e) => setDraft(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void handleSend(); } }}
-                    placeholder="Escribe tu consulta…"
-                  />
-                  <button className="landing-btn primary compact" onClick={handleSend} disabled={sending || !draft.trim()}>
-                    <Send size={15} />
-                  </button>
-                </div>
+                <>
+                  {replyingTo && (
+                    <div className="mchat-replybox">
+                      <Reply size={13} />
+                      <div>
+                        <b>Respondiendo a {senderOf(replyingTo).name}</b>
+                        <p>{replyingTo.text || replyingTo.fileName || 'Archivo adjunto'}</p>
+                      </div>
+                      <button onClick={() => setReplyingTo(null)} aria-label="Cancelar respuesta"><X size={14} /></button>
+                    </div>
+                  )}
+                  {uploading && (
+                    <div className="mchat-uploadbar">
+                      <span>Subiendo archivo… {uploadProgress}%</span>
+                      <div><i style={{ width: `${uploadProgress}%` }} /></div>
+                    </div>
+                  )}
+                  <div className="mensajes-composer">
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      style={{ display: 'none' }}
+                      onChange={handleFilePicked}
+                    />
+                    <button className="mchat-paperclip" onClick={() => fileInputRef.current?.click()} disabled={uploading} title="Adjuntar archivo">
+                      <Paperclip size={17} />
+                    </button>
+                    <input
+                      value={draft}
+                      onChange={(e) => setDraft(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void handleSend(); } }}
+                      placeholder="Escribe tu consulta…"
+                    />
+                    <button className="landing-btn primary compact" onClick={handleSend} disabled={sending || uploading || !draft.trim()}>
+                      <Send size={15} />
+                    </button>
+                  </div>
+                </>
               )}
             </>
           )}

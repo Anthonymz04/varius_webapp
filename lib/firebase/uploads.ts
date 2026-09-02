@@ -47,3 +47,9 @@ export function uploadCertificate(uid: string, file: File, onProgress?: (percent
 export function uploadCV(uid: string, file: File, onProgress?: (percent: number) => void) {
   return uploadFile(file, `cvs/${uid}/hoja-vida.pdf`, onProgress);
 }
+
+export function uploadChatFile(conversacionId: string, file: File, onProgress?: (percent: number) => void) {
+  const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_').slice(0, 60);
+  const ts = Date.now();
+  return uploadFile(file, `chat/${conversacionId}/${ts}-${safeName}`, onProgress);
+}
