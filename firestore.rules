@@ -28,6 +28,7 @@ service cloud.firestore {
       match /messages/{messageId} {
         allow read: if signedIn() && request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds;
         allow create: if signedIn() && request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds && request.resource.data.senderId == request.auth.uid;
+        allow update: if signedIn() && request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participantIds;
       }
     }
 
