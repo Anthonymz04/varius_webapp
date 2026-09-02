@@ -16,6 +16,7 @@ import { uploadCover, uploadAvatar, uploadCertificate, uploadCV } from '@/lib/fi
 import { AsesoriaRequest, createConversacion, fetchLawyerRequests, updateRequestStatus } from '@/lib/firebase/asesorias';
 import { updateLawyerPrice, updateLawyerCity } from '@/lib/firebase/marketplace';
 import Skeleton from '@/app/components/Skeleton';
+import CitySelect from '@/app/components/CitySelect';
 import {
   LawyerVerification,
   fetchLawyerVerification,
@@ -358,10 +359,7 @@ export default function PerfilPage() {
               Nombre
               <input className="input-field" style={{ marginTop: 4 }} value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Tu nombre completo" />
             </label>
-            <label style={{ fontSize: 12, color: '#888', fontWeight: 600 }}>
-              Ciudad
-              <input className="input-field" style={{ marginTop: 4 }} value={editCity} onChange={(e) => setEditCity(e.target.value)} placeholder="Tu ciudad" />
-            </label>
+            <CitySelect value={editCity} onChange={setEditCity} placeholder="Busca y selecciona tu ciudad" label="Ciudad" />
             <label style={{ fontSize: 12, color: '#888', fontWeight: 600 }}>
               Biografía
               <textarea className="input-field" style={{ marginTop: 4, minHeight: 60, resize: 'vertical' }} value={editBio} onChange={(e) => setEditBio(e.target.value)} placeholder="Cuéntanos sobre ti (opcional)" />

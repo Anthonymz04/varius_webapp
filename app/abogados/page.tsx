@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useMemo } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { ArrowLeft, CheckCircle2, MapPin, Search, Star, X, Calendar, Clock, Award } from 'lucide-react';
@@ -14,7 +14,6 @@ import { Lawyer, createConsultationRequest, fetchLawyers } from '@/lib/firebase/
 type LawyerFull = Lawyer;
 
 const specialties = ['Todos', 'Derecho de familia', 'Derecho laboral', 'Propiedad intelectual', 'Derecho penal', 'Derecho tributario', 'Derecho constitucional'];
-const cities = ['Todas', 'Quito, Ecuador', 'Guayaquil, Ecuador', 'Cuenca, Ecuador', 'Atención virtual'];
 
 function AbogadosContent() {
   const { user } = useAuth();
@@ -56,6 +55,8 @@ function AbogadosContent() {
     const matchCity = city === 'Todas' || l.city === city;
     return matchSearch && matchSpecialty && matchCity;
   });
+
+  const cityOptions = useMemo(() => ['Todas', ...Array.from(new Set(allLawyers.map((l) => l.city).filter(Boolean)))], [allLawyers]);
 
   const handleBookSession = async (lawyer: LawyerFull) => {
     if (!user) {
@@ -123,7 +124,7 @@ function AbogadosContent() {
             cursor: 'pointer',
           }}
         >
-          {cities.map((c) => (
+          {cityOptions.map((c) => (
             <option key={c} value={c}>{c === 'Todas' ? '📍 Ciudad' : c}</option>
           ))}
         </select>
