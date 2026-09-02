@@ -7,7 +7,7 @@ import { addHistory, createNotification } from '@/lib/firebase/notifications';
 
 const COLLECTION = 'lawyers';
 
-export type Lawyer = SeedLawyer & { uid?: string };
+export type Lawyer = SeedLawyer & { uid?: string; certificadoURL?: string; cvURL?: string };
 
 export async function fetchLawyers(): Promise<Lawyer[]> {
   if (!db) return [];
@@ -29,6 +29,8 @@ export async function fetchLawyers(): Promise<Lawyer[]> {
         education: data.education ?? '',
         experience: data.experience ?? '',
         uid: data.uid ?? '',
+        certificadoURL: data.certificadoURL ?? '',
+        cvURL: data.cvURL ?? '',
       };
     });
   } catch {

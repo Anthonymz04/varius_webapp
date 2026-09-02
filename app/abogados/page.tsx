@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense, useMemo } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { ArrowLeft, CheckCircle2, MapPin, Search, Star, X, Calendar, Clock, Award } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, FileText, MapPin, Search, Star, X, Calendar, Clock, Award } from 'lucide-react';
 import LawyerCard from '@/app/components/LawyerCard';
 import AuthDialog from '@/app/components/AuthDialog';
 import type { LawyerData } from '@/app/components/LawyerCard';
@@ -232,6 +232,29 @@ function AbogadosContent() {
                   <p>{selectedLawyer.bio}</p>
                 </div>
               </div>
+
+              {(selectedLawyer.certificadoURL || selectedLawyer.cvURL) && (
+                <div className="lawyer-detail-item">
+                  <FileText size={16} />
+                  <div>
+                    <strong>Documentos de respaldo</strong>
+                    {selectedLawyer.certificadoURL && (
+                      <p style={{ margin: '4px 0' }}>
+                        <a href={selectedLawyer.certificadoURL} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--wine)', fontSize: 13 }}>
+                          📄 Ver título profesional (PDF)
+                        </a>
+                      </p>
+                    )}
+                    {selectedLawyer.cvURL && (
+                      <p style={{ margin: '4px 0' }}>
+                        <a href={selectedLawyer.cvURL} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--wine)', fontSize: 13 }}>
+                          📋 Ver hoja de vida (PDF)
+                        </a>
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="lawyer-modal-footer">
