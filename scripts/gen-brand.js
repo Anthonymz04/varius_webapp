@@ -12,11 +12,7 @@ const BRAND = '#B45935';
 const CREAM = '#FDF8F5';
 const MASK_THR = 200;
 
-/** Trace a (optionally squared) monochrome PNG from a JPEG crop.
- *  - forceSquare=true: pads the extracted glyph to a 1:1 canvas (used for the isotipo used in splash/icons).
- *  - forceSquare=false: keeps the original aspect (used for the lockup/logo).
- */
-async function toTrimmedMaskPng(jpegPath, crop, forceSquare = false) {
+async function toTrimmedMaskPng(jpegPath, crop) {
   const { data, info } = await sharp(jpegPath)
     .extract(crop)
     .grayscale()
@@ -36,35 +32,18 @@ async function toTrimmedMaskPng(jpegPath, crop, forceSquare = false) {
   const w = Math.max(maxX - minX + 1, 1);
   const h = Math.max(maxY - minY + 1, 1);
   const target = 826;
-  let nw, nh, pad;
-  if (forceSquare) {
-    const size = Math.max(w, h);
-    const ns = Math.round(size * (target / size));
-    nw = target;
-    nh = target;
-    pad = Math.round((target - ns) / 2);
-  } else {
-    const longSide = Math.max(w, h);
-    const scale = target / longSide;
-    nw = Math.round(w * scale);
-    nh = Math.round(h * scale);
-    pad = 0;
-  }
-  const extract = await sharp(data, { raw: { width: info.width, height: info.height, channels: 1 } })
+  const longSide = Math.max(w, h);
+  const scale = longSide < target ? target / longSide : 1;
+  const nw = Math.round(w * scale);
+  const nh = Math.round(h * scale);
+  const trimmed = await sharp(data, { raw: { width: info.width, height: info.height, channels: 1 } })
     .extract({ left: minX, top: minY, width: w, height: h })
     .resize(nw, nh, { fit: 'fill' })
+    .png()
     .toBuffer();
-  let out = sharp(extract, { raw: { width: nw, height: nh, channels: 1 } });
-  if (pad > 0) {
-    out = out.extend({
-      top: pad, bottom: pad, left: pad, right: pad,
-      background: 'rgba(255,255,255,0)',
-    });
-  }
-  const png = await out.png().toBuffer();
   const tmp = path.join(os.tmpdir(), `varius-brand-${Date.now()}-${Math.random().toString(36).slice(2)}.png`);
-  fs.writeFileSync(tmp, png);
-  return { file: tmp, width: forceSquare ? target : nw, height: forceSquare ? target : nh };
+  fs.writeFileSync(tmp, trimmed);
+  return { file: tmp, width: nw, height: nh };
 }
 
 function tracePng(pngPath, color) {
@@ -79,9 +58,13 @@ function withViewBox(svg, w, h) {
     .replace(/<\/svg>[\s\S]*$/, '</svg>');
 }
 
+function withOutline(svg) {
+  return svg.replace(/stroke="none"/, 'stroke="#8F4422" stroke-width="8" stroke-linejoin="round"');
+}
+
 async function run() {
   fs.mkdirSync(OUT_DIR, { recursive: true });
-  const iso = await toTrimmedMaskPng(ICON_JPEG, { left: 40, top: 60, width: 272, height: 205 }, true);
+  const iso = await toTrimmedMaskPng(ICON_JPEG, { left: 40, top: 60, width: 272, height: 205 });
   const lock = await toTrimmedMaskPng(LOGO_JPEG, { left: 0, top: 0, width: 690, height: 224 });
 
   const isoSvg = await tracePng(iso.file, BRAND);
@@ -89,10 +72,10 @@ async function run() {
   const lockSvg = await tracePng(lock.file, BRAND);
   const lockMono = await tracePng(lock.file, CREAM);
 
-  fs.writeFileSync(path.join(OUT_DIR, 'isotipo.svg'), withViewBox(isoSvg.replace(/<path /, '<path stroke="#8F4422" stroke-width="2" stroke-linejoin="round" '), iso.width, iso.height));
+  fs.writeFileSync(path.join(OUT_DIR, 'isotipo.svg'), withOutline(withViewBox(isoSvg, iso.width, iso.height)));
   fs.writeFileSync(path.join(OUT_DIR, 'isotipo-mono.svg'), withViewBox(isoMono, iso.width, iso.height));
   const lockHead = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + lock.width + ' ' + lock.height + '" width="100%" height="auto" role="img" aria-label="VARIUS">';
-  fs.writeFileSync(path.join(OUT_DIR, 'lockup.svg'), lockSvg.replace(/<svg[^>]*>[\s\S]*<rect[^>]*\/?>?/, lockHead).replace(/<rect[^>]*\/?>/g, '').replace(/<\/svg>[\s\S]*$/, '</svg>'));
+  fs.writeFileSync(path.join(OUT_DIR, 'lockup.svg'), withOutline(lockSvg.replace(/<svg[^>]*>[\s\S]*<rect[^>]*\/?>?/, lockHead).replace(/<rect[^>]*\/?>/g, '').replace(/<\/svg>[\s\S]*$/, '</svg>')));
   fs.writeFileSync(path.join(OUT_DIR, 'lockup-mono.svg'), lockMono.replace(/<svg[^>]*>[\s\S]*<rect[^>]*\/?>?/, lockHead).replace(/<rect[^>]*\/?>/g, '').replace(/<\/svg>[\s\S]*$/, '</svg>'));
 
   const isoD = isoSvg.match(/d="([^"]*)"/)[1];
