@@ -525,7 +525,7 @@ function ChatInner() {
                         {sender.photo ? (
                           <img src={sender.photo} alt="" />
                         ) : (
-                          <span style={{ background: mine ? '#c2185b' : '#d8ad96' }}>{initialsOf(sender.name)}</span>
+                          <span style={{ background: mine ? '#b45935' : '#9e7b43' }}>{initialsOf(sender.name)}</span>
                         )}
                       </div>
                       <div className="mchat-col">

@@ -40,7 +40,7 @@ export interface PostComment {
   createdAt: number;
 }
 
-export const POST_COLORS = ['#d8ad96', '#7e907d', '#9f7f8c', '#8b7d9b', '#d89696', '#7d8e90'];
+export const POST_COLORS = ['#9e7b43', '#7e907d', '#9f7f8c', '#8b7d9b', '#d89696', '#7d8e90'];
 
 async function seedPostsIfEmpty(): Promise<void> {
   if (!db) return;

@@ -16,7 +16,6 @@ import { db, auth } from '@/lib/firebase/client';
 
 const NOTIFICATIONS = 'notifications';
 const HISTORY = 'actionHistory';
-const MAIL = 'mail';
 
 export type NotificationType = 'asesoria' | 'tutoria' | 'cuenta' | 'perfil' | 'info';
 
@@ -119,14 +118,4 @@ export async function markNotificationsRead(items: AppNotification[]): Promise<v
 export async function deleteNotification(id: string): Promise<void> {
   if (!db) return;
   await deleteDoc(doc(db, NOTIFICATIONS, id));
-}
-
-export async function queueEmail(actorId: string, to: string[], subject: string, text: string): Promise<void> {
-  if (!db || to.length === 0) return;
-  await addDoc(collection(db, MAIL), {
-    actorId,
-    to,
-    message: { subject, text },
-    createdAt: Date.now(),
-  });
 }

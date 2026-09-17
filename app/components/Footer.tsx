@@ -12,7 +12,7 @@ export default function Footer() {
         {/* Brand column */}
         <div className="footer-brand">
           <div className="footer-logo">
-            <span>V</span> VARIUS
+            <img src="/brand/lockup.svg" alt="VARIUS" className="footer-brand-img" />
           </div>
           <p className="footer-desc">
             El puente entre aprender, ejercer y acceder al Derecho.
@@ -71,8 +71,14 @@ export default function Footer() {
 
       {/* Bottom bar */}
       <div className="footer-bottom">
-        <p>© {new Date().getFullYear()} VARIUS. Creado por <strong>Valeska & Arianna</strong>. Todos los derechos reservados.</p>
+        <p>© {new Date().getFullYear()} VARIUS. Creado por <strong>Valeska &amp; Arianna</strong>. Todos los derechos reservados.</p>
         <p>La información es orientativa y no sustituye asesoría profesional.</p>
+        <div className="legal-links">
+          <Link href="/privacidad">Política de Privacidad</Link> ·{' '}
+          <Link href="/terminos">Términos y Condiciones</Link> ·{' '}
+          <Link href="/cookies">Política de Cookies</Link> ·{' '}
+          <Link href="/aviso-legal">Aviso Legal</Link>
+        </div>
       </div>
     </footer>
   );

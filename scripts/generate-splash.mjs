@@ -20,7 +20,7 @@ for (const target of targets) {
   const m = await sharp(target).metadata();
   const logoSize = Math.round(Math.min(m.width, m.height) * 0.42);
   const base = await sharp({
-    create: { width: m.width, height: m.height, channels: 3, background: '#c2185b' },
+    create: { width: m.width, height: m.height, channels: 3, background: '#b45935' },
   }).png().toBuffer();
   const logo = await sharp(src).resize(logoSize, logoSize).png().toBuffer();
   await sharp(base)

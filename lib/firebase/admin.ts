@@ -55,7 +55,7 @@ export async function approveVerification(v: LawyerVerification, adminUid: strin
     rating: 'Nuevo',
     reviews: '0 reseñas',
     price: v.price || '$30 / consulta',
-    color: '#d8ad96',
+    color: '#9e7b43',
     initials: (v.fullName.split(' ').map((x) => x[0]).join('').slice(0, 2) || '?').toUpperCase(),
     bio: v.bio || 'Abogado verificado por VARIUS.',
     education: v.university,

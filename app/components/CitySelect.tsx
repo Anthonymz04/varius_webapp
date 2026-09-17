@@ -70,7 +70,7 @@ export default function CitySelect({ value, onChange, placeholder = 'Tu ciudad',
               type="button"
               style={{
                 display: 'block', width: '100%', textAlign: 'left',
-                padding: '10px 14px', fontSize: 12, border: 'none', background: c === value ? '#fdf1f6' : 'transparent',
+                padding: '10px 14px', fontSize: 12, border: 'none', background: c === value ? '#fff0eb' : 'transparent',
                 color: 'var(--ink)', cursor: 'pointer',
               }}
               onMouseDown={(e) => { e.preventDefault(); onChange(c); setOpen(false); }}

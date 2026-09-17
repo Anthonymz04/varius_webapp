@@ -396,7 +396,7 @@ export default function PerfilPage() {
               </>
             )}
             {editRole === 'lawyer' && role !== 'lawyer' && (
-              <p style={{ fontSize: 11, color: '#8c1044', background: '#fdf1f6', borderRadius: 8, padding: '10px 12px', margin: 0 }}>
+              <p style={{ fontSize: 11, color: '#8f4422', background: '#fff0eb', borderRadius: 8, padding: '10px 12px', margin: 0 }}>
                 Para registrarte como abogado enviarás una solicitud de verificación. Tu rol actual no cambia hasta que un administrador la apruebe.
               </p>
             )}

@@ -1,4 +1,4 @@
-const CACHE='varius-v4';
+const CACHE='varius-v5';
 const CORE=['/manifest.webmanifest','/icons/icon-192.png','/icons/icon-512.png'];
 const IMMUTABLE=/^\/(_next\/static|icons)\//;
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting())));

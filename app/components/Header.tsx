@@ -32,6 +32,7 @@ export default function Header() {
     { href: '/tutorias', label: 'Tutorías' },
     { href: '/comunidad', label: 'Comunidad' },
     { href: '/mensajes', label: 'Asesorías' },
+    { href: '/planes', label: 'Planes' },
   ];
 
   // Close search dropdown on click outside or Escape
@@ -81,7 +82,7 @@ export default function Header() {
     <>
       <header>
         <Link className="brand" href="/">
-          <img src="/icons/icon-192.png" alt="VARIUS" style={{ width: 28, height: 28, borderRadius: 8 }} /> VARIUS
+          <img src="/brand/isotipo.svg" alt="VARIUS" style={{ width: 28, height: 28 }} /> VARIUS
         </Link>
 
         {/* Search bar with dropdown (Platzi / Pichincha style) */}

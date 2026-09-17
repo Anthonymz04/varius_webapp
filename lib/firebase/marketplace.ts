@@ -23,7 +23,7 @@ export async function fetchLawyers(): Promise<Lawyer[]> {
         rating: data.rating ?? '—',
         reviews: data.reviews ?? '',
         price: data.price ?? '',
-        color: data.color ?? '#d8ad96',
+        color: data.color ?? '#9e7b43',
         initials: data.initials ?? '?',
         bio: data.bio ?? '',
         education: data.education ?? '',

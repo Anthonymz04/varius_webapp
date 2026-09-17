@@ -270,7 +270,7 @@ export default function AuthDialog({ user, close }: AuthDialogProps) {
                       <input type="file" accept=".pdf" style={{ display: 'none' }} onChange={(e) => setCvFile(e.target.files?.[0] ?? null)} />
                     </label>
                   </label>
-                  <p style={{ fontSize: 11, color: '#8c1044', background: '#fdf1f6', borderRadius: 8, padding: '10px 12px', margin: 0 }}>
+                  <p style={{ fontSize: 11, color: '#8f4422', background: '#fff0eb', borderRadius: 8, padding: '10px 12px', margin: 0 }}>
                     Tu solicitud será revisada por un administrador antes de activar tu rol de abogado.
                   </p>
                 </>

@@ -174,7 +174,7 @@ function AsistenteChat() {
       {/* Sidebar */}
       <aside>
         <Link className="brand" href="/">
-          <img src="/icons/icon-192.png" alt="VARIUS" style={{ width: 24, height: 24, borderRadius: 7 }} /> VARIUS
+          <img src="/brand/isotipo.svg" alt="VARIUS" style={{ width: 24, height: 24 }} /> VARIUS
         </Link>
         <button
           className="new-chat"

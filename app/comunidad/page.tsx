@@ -141,7 +141,7 @@ export default function ComunidadPage() {
       {user ? (
         <div className="composer" style={{ margin: '30px 0 24px', padding: '18px 22px', border: '1px solid var(--line)', borderRadius: '15px', background: '#fff', display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-            <div className="avatar" style={{ background: '#c9a227', width: 36, height: 36, fontSize: 11 }}>
+            <div className="avatar" style={{ background: '#9e7b43', width: 36, height: 36, fontSize: 11 }}>
               {(user.displayName || user.email || '?').split(' ').map((x) => x[0]).join('').slice(0, 2).toUpperCase()}
             </div>
             <div style={{ flex: 1 }}>

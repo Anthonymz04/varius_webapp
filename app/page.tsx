@@ -28,9 +28,10 @@ import { fetchLawyers, fetchMyRequests, type Lawyer } from '@/lib/firebase/marke
 import { fetchMisReservas } from '@/lib/firebase/tutorias';
 import { fetchConsultations } from '@/lib/firebase/consultations';
 import { fetchHistory, type HistoryItem } from '@/lib/firebase/notifications';
+import { planes as planesData, type Plan } from '@/app/planes/planes';
 
 const actions = [
-  { icon: Bot, title: 'Consultar IA', text: 'Aclara una duda legal', tint: '#fae7ef', href: '/asistente' },
+  { icon: Bot, title: 'Consultar IA', text: 'Aclara una duda legal', tint: '#fdf0ea', href: '/asistente' },
   { icon: Search, title: 'Buscar abogado', text: 'Encuentra al ideal para ti', tint: '#f4edda', href: '/abogados' },
   { icon: CalendarDays, title: 'Agendar asesoría', text: 'Reserva en pocos minutos', tint: '#e8f0e8', href: '/abogados' },
 ];
@@ -40,11 +41,11 @@ const actionsByRole: Record<string, typeof actions> = {
   student: [
     { icon: GraduationCap, title: 'Tutorías', text: 'Clases 1:1 con profesionales', tint: '#f4edda', href: '/tutorias' },
     { icon: BookOpen, title: 'Biblioteca legal', text: 'Guías y recursos de estudio', tint: '#e8f0e8', href: '/biblioteca' },
-    { icon: Users, title: 'Comunidad', text: 'Debate con otros estudiantes', tint: '#fae7ef', href: '/comunidad' },
+    { icon: Users, title: 'Comunidad', text: 'Debate con otros estudiantes', tint: '#fdf0ea', href: '/comunidad' },
     { icon: Bot, title: 'Consultar IA', text: 'Explica conceptos difíciles', tint: '#eef1f6', href: '/asistente' },
   ],
   lawyer: [
-    { icon: Briefcase, title: 'Mis solicitudes', text: 'Atiende tus asesorías', tint: '#fae7ef', href: '/perfil' },
+    { icon: Briefcase, title: 'Mis solicitudes', text: 'Atiende tus asesorías', tint: '#fdf0ea', href: '/perfil' },
     { icon: Users, title: 'Comunidad', text: 'Comparte tu conocimiento', tint: '#e8f0e8', href: '/comunidad' },
     { icon: BookOpen, title: 'Biblioteca legal', text: 'Normativa siempre a mano', tint: '#f4edda', href: '/biblioteca' },
   ],
@@ -235,10 +236,71 @@ function LandingPage() {
               ))}
             </div>
           )}
-          <div style={{ textAlign: 'center', marginTop: '28px' }}>
+           <div style={{ textAlign: 'center', marginTop: '28px' }}>
             <button className="landing-btn primary compact" onClick={() => setAuthOpen(true)}>
               <span>Acceder para contactar</span> <ArrowRight size={16} />
             </button>
+          </div>
+        </div>
+      </section>
+      <section className="landing-section landing-planes">
+        <div className="landing-container">
+          <div className="section-title">
+            <div>
+              <p className="eyebrow">MEMBRESÍAS VARIUS</p>
+              <h2>Accede con el nivel que necesites</h2>
+            </div>
+            <Link href="/planes" className="link">
+              Ver planes <ArrowRight size={16} />
+            </Link>
+          </div>
+          <p className="lead" style={{ maxWidth: 680, margin: '0 auto', textAlign: 'center', color: '#666' }}>
+            El acceso básico es <strong>gratis</strong>. Los planes premium (visuales) te abren tutorías, IA ampliada
+            y perfil destacado. En el MVP no se cobra todavía.
+          </p>
+          <div className="planes-grid">
+            {planesData.slice(0, 3).map((p: Plan) => {
+              const Icon = p.benefits[0]?.icon ?? Bot;
+              const ctaLabel =
+                p.id === 'gratis'
+                  ? 'Empezar gratis'
+                  : 'Cotizar por WhatsApp';
+              const href =
+                p.id === 'gratis'
+                  ? '/asistente'
+                  : `https://wa.me/593999000000?text=Hola%20VARIUS%20quiero%20informes%20plan%20${encodeURIComponent(p.name)}`;
+              return (
+                <div className={`plan-card ${p.featured ? 'plan-card-featured' : ''}`} key={p.id}>
+                  <div className="plan-head">
+                    <h3>{p.name}</h3>
+                    <small>{p.subtitle}</small>
+                  </div>
+                  <div className="plan-price">
+                    <span>{p.price}</span>
+                    <small>{p.priceNote}</small>
+                  </div>
+                  <ul className="plan-benefits">
+                    {p.benefits.map((b) => (
+                      <li key={b.text}>
+                        <b.icon size={14} />
+                        <span>{b.text}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="plan-cta">
+                    <Link href={href} className={`landing-btn compact ${p.id === 'gratis' ? 'primary' : ''}`} target={p.id === 'gratis' ? undefined : '_blank'} rel={p.id === 'gratis' ? undefined : 'noopener noreferrer'}>
+                      {p.id === 'gratis' ? <>{ctaLabel} <ArrowRight size={14} /></> : <><Icon size={14} /> {ctaLabel}</>}
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div style={{ textAlign: 'center', marginTop: '32px' }}>
+            <Link href="/planes" className="landing-btn primary">
+              <span>Conocer todos los planes</span> <ArrowRight size={16} />
+            </Link>
           </div>
         </div>
       </section>
