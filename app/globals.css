@@ -1277,9 +1277,10 @@ h2 {
 .history-item {
   display: flex;
   align-items: center;
-  gap: 4px;
+  justify-content: space-between;
+  gap: 6px;
   border-radius: 10px;
-  padding: 2px 4px 2px 0;
+  padding: 2px 6px;
 }
 
 .history-item.active {
@@ -1293,9 +1294,17 @@ h2 {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 8px 6px 8px 10px;
+  padding: 8px 6px;
   display: flex;
   flex-direction: column;
+  gap: 2px;
+  justify-content: center;
+}
+
+.history-item .history-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   gap: 2px;
 }
 
