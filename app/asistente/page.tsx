@@ -143,6 +143,8 @@ function AsistenteChat() {
     return `${d.toLocaleDateString('es-EC', { day: 'numeric', month: 'short' })}, ${d.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' })}`;
   };
 
+  const truncateTitle = (title: string) => (title.length > 36 ? `${title.slice(0, 36)}...` : title);
+
   const handleSaveBanner = async () => {
     setSavingBanner(true);
     await persist(messages);
@@ -285,7 +287,10 @@ function AsistenteChat() {
                       {recent.map((c) => (
                         <div key={c.id} className={`history-item ${c.id === activeId ? 'active' : ''}`}>
                           <button className="history-open" onClick={() => openConsultation(c)}>
-                            <b>{c.title}</b>
+                            <b>
+                              {truncateTitle(c.title)}
+                              {c.title.length > 36 && <i className="truncate-tip" title={c.title} />}
+                            </b>
                             <small>
                               {c.pinned && <Pin size={11} className="pin-indicator" />}
                               {fmtDate(c.updatedAt)}

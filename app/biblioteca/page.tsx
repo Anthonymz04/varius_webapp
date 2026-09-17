@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { ArrowLeft, BookOpen, Download, ExternalLink, Search, X } from 'lucide-react';
+import { ArrowLeft, BookOpen, Download, ExternalLink, Maximize2, Search, ZoomIn, ZoomOut, X } from 'lucide-react';
 
 interface Resource {
   title: string;
@@ -183,6 +183,14 @@ const typeLabels: Record<string, string> = {
 };
 
 function ResourceModal({ resource, close }: { resource: Resource; close: () => void }) {
+  const [zoom, setZoom] = useState(100);
+  const step = 12.5;
+
+  const doZoom = (dir: 'in' | 'out' | 'reset') => {
+    if (dir === 'reset') return setZoom(100);
+    setZoom((prev) => Math.min(300, Math.max(50, prev + (dir === 'in' ? step : -step))));
+  };
+
   return (
     <div className="dialog-bg" onClick={close}>
       <div className="resource-viewer" onClick={(e) => e.stopPropagation()}>
@@ -191,16 +199,31 @@ function ResourceModal({ resource, close }: { resource: Resource; close: () => v
             <h2>{resource.title}</h2>
             <small>{typeLabels[resource.type]}</small>
           </div>
+          <div className="resource-viewer-toolbar">
+            <button className="icon-btn compact" aria-label="Zoom menos" onClick={() => doZoom('out')} title="Alejar">
+              <ZoomOut size={16} />
+            </button>
+            <span className="zoom-value">{zoom}%</span>
+            <button className="icon-btn compact" aria-label="Zoom más" onClick={() => doZoom('in')} title="Acercar">
+              <ZoomIn size={16} />
+            </button>
+            <button className="icon-btn compact" aria-label="Ajustar" onClick={() => doZoom('reset')} title="Ajustar a página">
+              <Maximize2 size={16} />
+            </button>
+          </div>
           <button className="close-btn" onClick={close} aria-label="Cerrar">
             <X size={18} />
           </button>
         </div>
-        <iframe
-          src={`https://drive.google.com/file/d/${resource.driveId}/preview`}
-          title={resource.title}
-          allow="autoplay"
-          className="resource-viewer-frame"
-        />
+        <div className="resource-viewer-frame-wrap">
+          <iframe
+            src={`https://drive.google.com/file/d/${resource.driveId}/preview`}
+            title={resource.title}
+            allow="autoplay"
+            className="resource-viewer-frame"
+            style={{ transform: `scale(${zoom / 100})`, transformOrigin: 'top center' }}
+          />
+        </div>
         <div className="resource-viewer-actions">
           <a
             className="landing-btn compact"

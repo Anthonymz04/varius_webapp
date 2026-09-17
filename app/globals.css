@@ -1307,6 +1307,20 @@ h2 {
   text-overflow: ellipsis;
 }
 
+.truncate-tip {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  vertical-align: middle;
+  margin-left: 4px;
+  border-radius: 3px;
+  opacity: 0.35;
+}
+
+.truncate-tip:hover {
+  opacity: 0.8;
+}
+
 .history-item .history-open small {
   font-size: 10.5px;
   color: #999;
@@ -5224,19 +5238,45 @@ select.select-field:focus {
   color: var(--brand);
 }
 
-.resource-viewer-frame {
-  flex: 1;
+.resource-viewer-toolbar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #fdf3ee;
+  border: 1px solid rgba(180, 89, 53, 0.35);
+  border-radius: 999px;
+  padding: 4px 10px;
+}
+
+.zoom-value {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--brand-dark);
+  min-width: 42px;
+  text-align: center;
+}
+
+.resource-viewer-frame-wrap {
   width: 100%;
+  overflow: auto;
+  height: calc(100vh - 280px);
+  scroll-behavior: smooth;
+}
+
+.resource-viewer-frame {
+  width: 100%;
+  height: 100%;
   border: none;
   background: #f7f5f2;
   min-height: 0;
+  transform-origin: top center;
 }
 
 .resource-viewer-actions {
   display: flex;
   gap: 10px;
   padding: 12px 18px 16px;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--line);;
   flex-wrap: wrap;
 }
 
