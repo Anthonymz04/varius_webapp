@@ -3,15 +3,17 @@
 import { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Bot, Briefcase, MoreHorizontal, Plus, Send } from 'lucide-react';
+import { Bot, Briefcase, MoreHorizontal, Pin, PinOff, Plus, Send, Trash2 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import FormattedText from '@/app/components/FormattedText';
 import { fetchLawyers, Lawyer } from '@/lib/firebase/marketplace';
 import { createRequest } from '@/lib/firebase/asesorias';
 import {
   Consultation,
+  deleteConsultation,
   fetchConsultations,
   saveConsultation,
+  setPinned,
 } from '@/lib/firebase/consultations';
 
 interface Message {
@@ -37,6 +39,7 @@ function AsistenteChat() {
   const [savingBanner, setSavingBanner] = useState(false);
   const [lawyers, setLawyers] = useState<Lawyer[]>([]);
   const [lawyerModal, setLawyerModal] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const startedAsGuest = useRef(false);
   const chatBodyRef = useRef<HTMLDivElement>(null);
 
@@ -107,6 +110,37 @@ function AsistenteChat() {
     if (isSending) return;
     setActiveId(c.id);
     setMessages(c.messages.length ? c.messages : [GREETING]);
+    setHistoryOpen(false);
+  };
+
+  const togglePin = async (c: Consultation) => {
+    try {
+      await setPinned(c.id, !c.pinned);
+      setRecent((prev) => {
+        const updated = prev.map((x) => (x.id === c.id ? { ...x, pinned: !c.pinned } : x));
+        return [...updated].sort((a, b) => {
+          if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+          return b.updatedAt - a.updatedAt;
+        });
+      });
+    } catch {}
+  };
+
+  const removeConsultation = async (c: Consultation) => {
+    if (!window.confirm(`¿Eliminar la conversación "${c.title}"? Esta acción no se puede deshacer.`)) return;
+    try {
+      await deleteConsultation(c.id);
+      setRecent((prev) => prev.filter((x) => x.id !== c.id));
+      if (activeId === c.id) {
+        setActiveId(null);
+        setMessages([GREETING]);
+      }
+    } catch {}
+  };
+
+  const fmtDate = (ts: number) => {
+    const d = new Date(ts);
+    return `${d.toLocaleDateString('es-EC', { day: 'numeric', month: 'short' })}, ${d.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' })}`;
   };
 
   const handleSaveBanner = async () => {
@@ -225,9 +259,66 @@ function AsistenteChat() {
               <i /> En línea
             </span>
           </div>
-          <button className="icon-btn">
-            <MoreHorizontal />
-          </button>
+          <div className="history-wrap">
+            <button
+              className="icon-btn"
+              aria-label="Historial de conversaciones"
+              onClick={() => setHistoryOpen((s) => !s)}
+            >
+              <MoreHorizontal />
+            </button>
+            {historyOpen && (
+              <div className="history-panel">
+                <button
+                  className="history-new"
+                  onClick={() => {
+                    setActiveId(null);
+                    setMessages([GREETING]);
+                    setHistoryOpen(false);
+                  }}
+                >
+                  <Plus size={15} /> Nueva consulta
+                </button>
+                {user ? (
+                  recent.length ? (
+                    <div className="history-list">
+                      {recent.map((c) => (
+                        <div key={c.id} className={`history-item ${c.id === activeId ? 'active' : ''}`}>
+                          <button className="history-open" onClick={() => openConsultation(c)}>
+                            <b>{c.title}</b>
+                            <small>
+                              {c.pinned && <Pin size={11} className="pin-indicator" />}
+                              {fmtDate(c.updatedAt)}
+                            </small>
+                          </button>
+                          <button
+                            className="history-action"
+                            aria-label={c.pinned ? 'Desanclar' : 'Anclar'}
+                            title={c.pinned ? 'Desanclar' : 'Anclar'}
+                            onClick={() => void togglePin(c)}
+                          >
+                            {c.pinned ? <PinOff size={14} /> : <Pin size={14} />}
+                          </button>
+                          <button
+                            className="history-action danger"
+                            aria-label="Eliminar"
+                            title="Eliminar"
+                            onClick={() => void removeConsultation(c)}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="history-empty">Tus conversaciones aparecerán aquí.</p>
+                  )
+                ) : (
+                  <p className="history-empty">Inicia sesión para ver tu historial.</p>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="chat-body" ref={chatBodyRef}>

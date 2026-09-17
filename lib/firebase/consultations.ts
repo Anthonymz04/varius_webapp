@@ -3,6 +3,7 @@
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   getDocs,
   query,
@@ -22,6 +23,7 @@ export interface Consultation {
   title: string;
   messages: ConsultationMessage[];
   updatedAt: number;
+  pinned?: boolean;
 }
 
 const COLLECTION = 'consultations';
@@ -38,10 +40,14 @@ export async function fetchConsultations(uid: string): Promise<Consultation[]> {
       title: (data.title as string) || 'Consulta',
       messages: (data.messages as ConsultationMessage[]) || [],
       updatedAt: typeof data.updatedAt === 'number' ? data.updatedAt : Date.now(),
+      pinned: Boolean(data.pinned),
     };
   });
-  list.sort((a, b) => b.updatedAt - a.updatedAt);
-  return list.slice(0, 20);
+  list.sort((a, b) => {
+    if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+    return b.updatedAt - a.updatedAt;
+  });
+  return list.slice(0, 50);
 }
 
 export async function saveConsultation(
@@ -58,4 +64,14 @@ export async function saveConsultation(
   }
   const ref = await addDoc(collection(db, COLLECTION), { ...payload, createdAt: Date.now() });
   return ref.id;
+}
+
+export async function setPinned(id: string, pinned: boolean): Promise<void> {
+  if (!db) throw new Error('Firebase no está configurado');
+  await updateDoc(doc(db, COLLECTION, id), { pinned });
+}
+
+export async function deleteConsultation(id: string): Promise<void> {
+  if (!db) throw new Error('Firebase no está configurado');
+  await deleteDoc(doc(db, COLLECTION, id));
 }

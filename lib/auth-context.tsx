@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/client';
 import type { UserRole } from '@/lib/firebase/profile';
 
@@ -47,6 +47,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const snap = await getDoc(doc(db, 'users', firebaseUser.uid));
           if (snap.exists()) {
             role = (snap.data().role as UserRole) ?? null;
+          } else {
+            // Safety net: the sign-up flow may still be writing the chosen role.
+            await new Promise((r) => setTimeout(r, 1500));
+            const recheck = await getDoc(doc(db, 'users', firebaseUser.uid));
+            if (recheck.exists()) {
+              role = (recheck.data().role as UserRole) ?? null;
+            } else {
+              role = 'citizen';
+              await setDoc(
+                doc(db, 'users', firebaseUser.uid),
+                {
+                  displayName: firebaseUser.displayName || 'Usuario VARIUS',
+                  email: firebaseUser.email || '',
+                  photoURL: firebaseUser.photoURL ?? null,
+                  role: 'citizen',
+                  updatedAt: serverTimestamp(),
+                  createdAt: serverTimestamp(),
+                },
+                { merge: true }
+              );
+            }
           }
         } catch {
           // Firestore may not have the doc yet (first login before profile creation)

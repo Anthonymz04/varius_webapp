@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { BookOpen, Bot, HelpCircle, Instagram, LogOut, Mail, Menu, MessageCircle, Music2, Scale, Search, Settings, User, Users, X, Youtube } from 'lucide-react';
+import { BookOpen, Bot, HelpCircle, Instagram, LogOut, Mail, Menu, MessageCircle, Music2, Scale, Search, Settings, Sparkle, User, Users, X, Youtube } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import AuthDialog from './AuthDialog';
 import NotificationBell from './NotificationBell';
@@ -205,6 +205,12 @@ export default function Header() {
         </nav>
 
         <div className="header-actions">
+          {/* Free-plan pill: cosmetic upsell to /planes */}
+          {!loading && (
+            <Link href="/planes" className="free-plan-pill" title="Estás usando la versión gratis">
+              <Sparkle size={12} /> Gratis
+            </Link>
+          )}
           {/* Authenticated header: notifications, avatar */}
           {user && (
             <>

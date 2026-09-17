@@ -15,6 +15,7 @@ import { auth, db, isFirebaseConfigured } from '@/lib/firebase/client';
 import { UserRole, createProfile, updateProfileFields } from '@/lib/firebase/profile';
 import { submitLawyerVerification } from '@/lib/firebase/verification';
 import { uploadCertificate, uploadCV } from '@/lib/firebase/uploads';
+import TermsModal from '@/app/components/TermsModal';
 
 interface AuthDialogProps {
   user: User | null;
@@ -41,6 +42,9 @@ export default function AuthDialog({ user, close }: AuthDialogProps) {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [termsOpen, setTermsOpen] = useState(false);
   const [cedula, setCedula] = useState('');
   const [registryNumber, setRegistryNumber] = useState('');
   const [university, setUniversity] = useState('');
@@ -74,6 +78,14 @@ export default function AuthDialog({ user, close }: AuthDialogProps) {
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!auth) return setError('Firebase no está disponible.');
+    if (mode === 'register') {
+      if (password !== confirmPassword) {
+        return setError('Las contraseñas no coinciden.');
+      }
+      if (!acceptedTerms) {
+        return setError('Debes aceptar los Términos y Condiciones para crear tu cuenta.');
+      }
+    }
     setBusy(true);
     setError('');
     try {
@@ -97,7 +109,17 @@ export default function AuthDialog({ user, close }: AuthDialogProps) {
           });
           await createProfile({ uid: result.user.uid, name, email, photoURL: null, role: 'citizen' });
         } else {
-          await ensureProfile(result.user, role);
+          let profileOk = false;
+          try {
+            await ensureProfile(result.user, role);
+            profileOk = true;
+          } catch {}
+          if (!profileOk) {
+            try {
+              await ensureProfile(result.user, role);
+              profileOk = true;
+            } catch {}
+          }
         }
       } else {
         await signInWithEmailAndPassword(auth, email, password);
@@ -145,6 +167,7 @@ export default function AuthDialog({ user, close }: AuthDialogProps) {
           <p className="auth-copy">
             Has iniciado sesión como <b>{user.email}</b>.
           </p>
+          {error && <p className="auth-error">{error}</p>}
           <button
             className="secondary-light"
             onClick={() => {
@@ -302,13 +325,52 @@ export default function AuthDialog({ user, close }: AuthDialogProps) {
               {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
+          {mode === 'register' && (
+            <>
+              <div className="auth-password-wrap">
+                <input
+                  required
+                  minLength={6}
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Confirmar contraseña"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  style={confirmPassword && confirmPassword !== password ? { borderColor: '#c0392b' } : undefined}
+                />
+                <button
+                  type="button"
+                  className="auth-password-toggle"
+                  aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                  onClick={() => setShowPassword((s) => !s)}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+              <label className="auth-terms">
+                <input
+                  type="checkbox"
+                  checked={acceptedTerms}
+                  onChange={(e) => setAcceptedTerms(e.target.checked)}
+                />
+                <span>
+                  Acepto los{' '}
+                  <button type="button" className="auth-terms-link" onClick={() => setTermsOpen(true)}>
+                    Términos y Condiciones
+                  </button>
+                </span>
+              </label>
+            </>
+          )}
           {error && <p className="auth-error">{error}</p>}
           <button
             className="primary"
             disabled={
               busy ||
               !isFirebaseConfigured ||
-              (mode === 'register' && role === 'lawyer' && (!pdfTitle || !cedula.trim()))
+              (mode === 'register' &&
+                (!acceptedTerms ||
+                  password !== confirmPassword ||
+                  (role === 'lawyer' && (!pdfTitle || !cedula.trim()))))
             }
           >
             {busy
@@ -328,6 +390,8 @@ export default function AuthDialog({ user, close }: AuthDialogProps) {
             : '¿Ya tienes cuenta? Inicia sesión'}
         </button>
       </section>
+
+      {termsOpen && <TermsModal close={() => setTermsOpen(false)} />}
     </div>
   );
 }

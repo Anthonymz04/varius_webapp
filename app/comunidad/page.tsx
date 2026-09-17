@@ -161,8 +161,13 @@ export default function ComunidadPage() {
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: 11, color: '#999' }}>Publicando como {role ?? 'usuario'}</span>
-            <button className="landing-btn primary compact" disabled={sending || !draft.trim()} onClick={publicar}>
-              <Send size={14} /> <span>{sending ? 'Publicando…' : 'Publicar'}</span>
+            <button
+              className="composer-send"
+              aria-label={sending ? 'Publicando…' : 'Publicar'}
+              disabled={sending || !draft.trim()}
+              onClick={publicar}
+            >
+              <Send size={16} />
             </button>
           </div>
         </div>

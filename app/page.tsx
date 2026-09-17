@@ -465,6 +465,7 @@ function Dashboard() {
       </section>
 
       <div className="dash-ai-card">
+        <img src="/robot-bust.png" alt="Asistente VARIUS" className="dash-ai-robot" />
         <div className="dash-ai-card-top">
           <Sparkles size={20} />
           <h3>Asistente Jurídico IA</h3>

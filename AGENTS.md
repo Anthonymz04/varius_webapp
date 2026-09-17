@@ -80,27 +80,30 @@ app/
   comunidad/            # Posts, likes y comentarios reales (Firestore)
   nosotros/             # Nosotros y contacto
   admin/                # (creado) Panel de administración: aprueba/rechaza verificaciones (rol 'admin')
+  planes/               # (creado) Planes/membresías (visual) + modal de checkout fantasma (pagos deshabilitados)
   perfil/               # Perfil editable (ciudad/bio/portada/avatar) + verificación cédula+PDF + peticiones abogado
   preguntas-frecuentes/ # FAQ estática
   hooks/useMisSolicitudes.ts  # hook solicitudes+reservas del usuario
   components/
     NotificationBell.tsx # campanita con notificaciones en tiempo real (Firestore)
-    MobileSplash.tsx    # Splash mobile (<700px, no logueado), botón abre AuthDialog
-    AuthDialog.tsx      # Login/registro por correo/contraseña (Google ELIMINADO)
-    Header.tsx          # Nav desktop con buscador y campanita
+    MobileSplash.tsx    # Splash mobile (<700px): boot blanco/crema con isotipo terracota + wordmark + loader; bienvenida abre AuthDialog
+    AuthDialog.tsx      # Login/registro por correo/contraseña (Google ELIMINADO) + confirmar contraseña + checkbox/modal de Términos
+    TermsModal.tsx      # (creado) Modal flotante scrollable con los Términos y Condiciones (usado en el registro)
+    Header.tsx          # Nav desktop con buscador, campanita y píldora "Gratis" → /planes
     BottomNav.tsx       # Nav inferior mobile (Asesorías reemplaza Comunidad)
     HeroCarousel.tsx    # Carrusel hero de landing
-    LawyerCard.tsx      # Card de abogado
+    LawyerCard.tsx      # Card de abogado (corazón de favoritos funcional)
     FormattedText.tsx   # Render markdown ligero del chat (negritas, listas, párrafos)
     Skeleton.tsx        # Placeholder shimmer reutilizable (width/height/radius)
     Footer.tsx
 lib/
-  auth-context.tsx      # useAuth() → { user, role, loading, signOut, reloadRole }
+  auth-context.tsx      # useAuth() → { user, role, loading, signOut, reloadRole }; red de seguridad que crea users/{uid} si falta
   firebase/client.ts    # init Firebase / flag isFirebaseConfigured / storage
   firebase/profile.ts   # users/{uid} (createProfile, updateProfileFields, fetchUserProfile)
   firebase/uploads.ts   # (creado) subidas a Storage: cover, avatar, certificado PDF
-  firebase/consultations.ts  # colección consultations (historial chat IA)
+  firebase/consultations.ts  # colección consultations (historial chat IA) + pinned + deleteConsultation
   firebase/marketplace.ts    # lawyers + lawyer_requests (sin correo; notif+historial)
+  firebase/social.ts         # (creado) lawyer_reviews (reseñas) + lawyer_favorites (favoritos)
   firebase/tutorias.ts       # tutoria_reservas (sin correo; notif+historial)
   firebase/asesorias.ts      # (creado) peticiones asesoría + conversaciones + mensajes
   firebase/comunidad.ts      # community_posts + community_comments (seed incluido)
@@ -110,7 +113,11 @@ lib/
 proxy.ts                # headers de seguridad (antes middleware.ts)
 public/sw.js, manifest.webmanifest  # PWA
 public/icons/           # iconos PNG generados (192/512/maskable/apple-touch)
+public/brand/           # (creado) isotipo.svg + isotipo-mono.svg + lockup*.svg (generados por scripts/gen-brand.js)
+public/icon.svg         # tile cuadrado de la marca (fuente de los PNG PWA/Android)
+public/robot-bust.png   # (creado) busto del robot con fondo transparente para la tarjeta IA del home móvil
 scripts/
+  gen-brand.js          # (creado) vectoriza docs/brand/*.jpeg → SVGs de marca (isotipo cuadrado + lockup)
   generate-icons.mjs    # genera iconos PNG a partir de public/icon.svg (requiere sharp)
   generate-splash.mjs   # pinta los splash.png de Android con el icono de marca
   generate-launcher.mjs # pinta ic_launcher de Android (mipmap) con el icono de marca
@@ -130,6 +137,8 @@ out/                    # Placeholder de assets web para Capacitor (modo server.
 - `lawyer_verifications/{uid}` — { uid, email, fullName, registryNumber, university, yearsExperience, bio, price, cedula, certificadoURL, status:'pendiente', createdAt }
 - `lawyer_requests/{id}` — petición de asesoría: { clientUid, clientName, clientEmail, lawyerId, lawyerUid, lawyerName, topic, status:'pendiente'|'aceptada'|'rechazada'|'cancelada', conversacionId }
 - `conversaciones/{id}` — chat persistente: { participants:[clientUid,lawyerUid], clientUid, clientName, lawyerUid, lawyerName, lastMessage, lastMessageAt, createdAt } + subcolección `messages/{msg}` { from, text, createdAt }
+- `lawyer_reviews/{id}` — { lawyerId, authorUid, authorName, rating, comment, createdAt }
+- `lawyer_favorites/{id}` — { uid, lawyerId, createdAt } (subcolección dentro de user o collection simple)
 - Patrón: ordenar en cliente, nunca where+orderBy juntos (evita índices compuestos).
 
 ## Convenciones y notas
@@ -179,14 +188,18 @@ out/                    # Placeholder de assets web para Capacitor (modo server.
 
 ## Pendiente / próximos pasos
 - Test manual pendiente por el usuario
-- **Publicar `firestore.rules`** en Firebase Console (colecciones notifications, action_history, lawyer_verifications, lawyer_requests, conversaciones, messages). Es el fix del toast "No se pudo enviar" aunque la solicitud sí se guarde y de la campanita vacía. El CLI local no tiene proyecto/credenciales (`firebase.json` no existe); publicar manualmente desde la consola o `firebase deploy --only firestore:rules`.
-- **OPENAI_API_KEY en Vercel del amigo**: el chatbot falla en producción porque el deploy del amigo no tiene la key (el código de `app/api/ai` es correcto; local funciona con `.env.local`). El amigo debe agregar `OPENAI_API_KEY` (y `OPENAI_MODEL`) a las env vars de su proyecto Vercel.
-- **Panel admin de verificación**: CONSTRUIDO en `/admin` (rol `users/{uid}.role='admin'`). Lista las `lawyer_verifications` pendientes (cédula + título PDF + hoja de vida PDF opcional + campos) y Aprueba/Rechaza. Al aprobar: escribe `users/{uid}.role='lawyer'` + cédula + certificateURL + cvURL y crea `lawyers/{uid}` (perfil marketplace con `uid`). El rol `admin` se asigna manualmente en la consola (no auto-promovible). El registro de abogado (AuthDialog) pide cédula + título PDF obligatorio + CV opcional y crea la verificación pendiente; el usuario queda como ciudadano hasta aprobación.
-- **Reglas Firestore (seguridad)**: `users` no permite auto-promoverse a 'lawyer' (solo admin o cambiar a citizen/student); `isAdmin()` puede escribir en users/lawyers/lawyer_verifications/notifications/actionHistory. Publicar el `firestore.rules` del repo.
-- **Correos**: retirados del flujo (decisión 2026-08-27). La cola `mail` sigue en reglas pero ya no se escribe desde la app.
+- **Publicar `firestore.rules`** en Firebase Console: ahora incluye `lawyer_reviews`, `lawyer_favorites` (nuevas colecciones). El CLI local no tiene proyecto/credenciales (`firebase.json` no existe); publicar manualmente desde la consola.
+- **OPENAI_API_KEY en Vercel del amigo**: el chatbot falla en producción porque el deploy del amigo no tiene la key; el amigo debe agregar `OPENAI_API_KEY` y `OPENAI_MODEL` a las env vars de su proyecto Vercel.
+- **Panel admin de verificación**: CONSTRUIDO en `/admin` (rol `users/{uid}.role='admin'`). Funcionalidad completa.
+- **Reglas Firestore (seguridad)**: Publicar el `firestore.rules` actualizado del repo.
+- **Correos**: retirados del flujo (2026-08-27).
 - **Perfil profesional abogado** (edición de bio/precio) sigue como stub; se editará con el admin.
-- **Avatar ovalado**: reportado por el usuario, pendiente de revisión visual (CSS parece correcto: width==height + border-radius:50%; sospecha: `<img>` con `height:auto` sin `object-fit:cover`).
-- `npm run lint` está ROTO en Next 16 (interpreta "lint" como directorio; no hay config eslint). Usar `npm run build` (incluye tsc) como verificación.
-- **APK**: buildear con `npx cap open android` → Build → Build APK(s), o `cd android && .\gradlew.bat assembleDebug --no-daemon`. `server.url` apunta a `https://varius-webapp-one.vercel.app`.
-- WhatsApp idea futura mencionada por el usuario para constancia de asesorías
-- **Decisión storage (2026-08-20)**: imágenes con Firebase Storage (ya integrado en uploads.ts: covers/{uid}, avatars/{uid}, certifications/{uid}/titulo.pdf). Foto de perfil Google usa `photoURL` directo. Assets de marca van en `/public` + `next/image`.
+- **Avatar ovalado**: reportado, revisar con usuario.
+- `npm run lint` está ROTO en Next 16; usar `npm run build` como verificación.
+- **APK**: buildear con `npx cap open android` → Build → Build APK(s). `server.url` apunta a `https://varius-webapp-one.vercel.app`.
+- **Decisión storage**: imágenes con Firebase Storage (ya integrado en uploads.ts).
+
+## Estado
+- Build exitoso: `npm run build` verde, 20 páginas generadas
+- Commit creado en `ariel_branch`
+- Los archivos nuevos TermsModal.tsx, social.ts y robot* están agregados

@@ -127,7 +127,7 @@ export default function MobileSplash() {
       <>
         <div className="splash-overlay">
           <div className="splash-content">
-            <img src="/brand/isotipo-mono.svg" alt="VARIUS" className="splash-logo" />
+            <img src="/brand/isotipo.svg" alt="VARIUS" className="splash-logo" />
             <h1 className="splash-title">VARIUS</h1>
             <p className="splash-tagline">
               El puente entre aprender, ejercer<br />y acceder al Derecho.

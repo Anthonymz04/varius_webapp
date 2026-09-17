@@ -3,13 +3,14 @@
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { ArrowLeft, ExternalLink, Search } from 'lucide-react';
+import { ArrowLeft, BookOpen, Download, ExternalLink, Search, X } from 'lucide-react';
 
 interface Resource {
   title: string;
-  type: 'ley' | 'guia' | 'modelo' | 'glosario';
+  type: 'ley' | 'glosario';
   description: string;
   category: string;
+  driveId: string;
   url: string;
 }
 
@@ -34,8 +35,8 @@ const glossary: GlossaryTerm[] = [
   { term: 'Despido intempestivo', definition: 'Terminación unilateral del contrato de trabajo por parte del empleador, sin causa legal justificada. Genera derecho a indemnización conforme al Código del Trabajo.' },
   { term: 'Décimo tercer sueldo', definition: 'Remuneración adicional equivalente a la doceava parte de las remuneraciones anuales, que el empleador debe pagar a los trabajadores.' },
   { term: 'Décimo cuarto sueldo', definition: 'Bono anual que se paga al trabajador equivalente a una remuneración básica unificada, según la ley ecuatoriana.' },
-  { term: 'Fondo de reserva', definition: 'Aporte mensual equivalente a una doceava parte de la remuneración, que el empleador deposita a favor del trabajador después de su primer año de servicio.' },
-  { term: 'Hábeas corpus', definition: 'Garantía constitucional para proteger la libertad personal. Permite a una persona detenida solicitar su libertad si la detención es ilegal o arbitraria.' },
+  { term: 'Fondo de reserva', definition: 'Aporte mensual equivalente a una doceava parte de la remuneración, que el empleador deposita a favor del trabajador después del primer año.' },
+  { term: 'Hábeas corpus', definition: 'Garantía constitucional para proteger la libertad y la integridad personal de quien sea detenido ilegal o arbitrariamente.' },
   { term: 'Hábeas data', definition: 'Garantía constitucional que protege el derecho a conocer, actualizar y rectificar la información que sobre una persona conste en entidades públicas o privadas.' },
   { term: 'Indemnización', definition: 'Compensación económica que debe pagar quien causa un daño o incumple una obligación. En materia laboral, compensa al trabajador por despido injustificado.' },
   { term: 'Juicio', definition: 'Proceso legal seguido ante un juez o tribunal para resolver un conflicto entre partes. Puede ser civil, penal, laboral, etc.' },
@@ -57,81 +58,165 @@ const resources: Resource[] = [
     type: 'ley',
     description: 'Norma suprema del ordenamiento jurídico ecuatoriano, vigente desde 2008.',
     category: 'Constitución',
-    url: 'https://www.lexis.com.ec/biblioteca/constitucion-republica-ecuador',
+    driveId: '1j08hDgZlsIhHfWXshhxzhNjcB7_RrQ1q',
+    url: 'https://drive.google.com/file/d/1j08hDgZlsIhHfWXshhxzhNjcB7_RrQ1q/view?usp=sharing',
   },
   {
-    title: 'Código Orgánico Integral Penal (COIP)',
+    title: 'Código Orgánico Administrativo',
     type: 'ley',
-    description: 'Regula el poder punitivo del Estado, tipifica infracciones penales y establece procedimientos.',
+    description: 'Regula la organización y funcionamiento del sector público ecuatoriano.',
     category: 'Códigos',
-    url: 'https://www.lexis.com.ec/biblioteca/codigo-organico-integral-penal',
-  },
-  {
-    title: 'Código del Trabajo',
-    type: 'ley',
-    description: 'Regula las relaciones entre empleadores y trabajadores. Contratos, jornadas, despidos y más.',
-    category: 'Códigos',
-    url: 'https://www.lexis.com.ec/biblioteca/codigo-trabajo',
+    driveId: '1rQEbETJhgU4Prttvwgf98OifPUzFQwT_',
+    url: 'https://drive.google.com/file/d/1rQEbETJhgU4Prttvwgf98OifPUzFQwT_/view?usp=sharing',
   },
   {
     title: 'Código Civil',
     type: 'ley',
     description: 'Norma las relaciones civiles entre personas: contratos, propiedad, familia, sucesiones.',
     category: 'Códigos',
-    url: 'https://www.lexis.com.ec/biblioteca/codigo-civil',
+    driveId: '1CivtT-U_3w28-RZOUazSJfWH1wD-kll0',
+    url: 'https://drive.google.com/file/d/1CivtT-U_3w28-RZOUazSJfWH1wD-kll0/view?usp=sharing',
+  },
+  {
+    title: 'Código de Comercio',
+    type: 'ley',
+    description: 'Regula la actividad comercial: comerciantes, obligaciones y títulos de crédito.',
+    category: 'Códigos',
+    driveId: '1w1lrP-5bahyziyJZmTrlWuLkNf1dbwn4',
+    url: 'https://drive.google.com/file/d/1w1lrP-5bahyziyJZmTrlWuLkNf1dbwn4/view?usp=sharing',
+  },
+  {
+    title: 'Código de la Niñez y Adolescencia',
+    type: 'ley',
+    description: 'Regula los derechos, garantías y deberes de niños, niñas y adolescentes en Ecuador.',
+    category: 'Códigos',
+    driveId: '1qYbbHP24HRI1saiFMeap9ssua2Z6YpGX',
+    url: 'https://drive.google.com/file/d/1qYbbHP24HRI1saiFMeap9ssua2Z6YpGX/view?usp=sharing',
+  },
+  {
+    title: 'Código del Trabajo',
+    type: 'ley',
+    description: 'Regula las relaciones entre empleadores y trabajadores. Contratos, jornadas, despidos y más.',
+    category: 'Códigos',
+    driveId: '1GJqbEeiUSLRvaud86kknrKIabVb_7ifg',
+    url: 'https://drive.google.com/file/d/1GJqbEeiUSLRvaud86kknrKIabVb_7ifg/view?usp=sharing',
+  },
+  {
+    title: 'Código Orgánico de la Función Judicial',
+    type: 'ley',
+    description: 'Regula la organización, competencias y funcionamiento de la Función Judicial.',
+    category: 'Códigos',
+    driveId: '175P_jaaABnprF8mc53xe3v9hXl2F5eAi',
+    url: 'https://drive.google.com/file/d/175P_jaaABnprF8mc53xe3v9hXl2F5eAi/view?usp=sharing',
+  },
+  {
+    title: 'Código Orgánico del Ambiente',
+    type: 'ley',
+    description: 'Regula la gestión ambiental, la biodiversidad y los recursos naturales.',
+    category: 'Códigos',
+    driveId: '1dpgOBaezPUXeJGk8m_neHXhwgFuJsemK',
+    url: 'https://drive.google.com/file/d/1dpgOBaezPUXeJGk8m_neHXhwgFuJsemK/view?usp=sharing',
+  },
+  {
+    title: 'Código Orgánico Tributario',
+    type: 'ley',
+    description: 'Regula las obligaciones tributarias, el SRI y los procedimientos de recaudación.',
+    category: 'Códigos',
+    driveId: '10arwalPhM4xsTZ_pfVgbKRLxXgyNsQTC',
+    url: 'https://drive.google.com/file/d/10arwalPhM4xsTZ_pfVgbKRLxXgyNsQTC/view?usp=sharing',
   },
   {
     title: 'COGEP — Código Orgánico General de Procesos',
     type: 'ley',
     description: 'Regula los procedimientos judiciales en materias no penales en Ecuador.',
     category: 'Códigos',
-    url: 'https://www.lexis.com.ec/biblioteca/codigo-organico-general-procesos',
+    driveId: '1Pr6PB6WyoHPSN__Qvvya-_rI_Anqmg8t',
+    url: 'https://drive.google.com/file/d/1Pr6PB6WyoHPSN__Qvvya-_rI_Anqmg8t/view?usp=sharing',
   },
   {
-    title: 'Ley Orgánica de Defensa del Consumidor',
+    title: 'COIP — Código Orgánico Integral Penal',
     type: 'ley',
-    description: 'Protege los derechos de los consumidores y regula las relaciones de consumo.',
-    category: 'Leyes Orgánicas',
-    url: 'https://www.lexis.com.ec/biblioteca/ley-organica-defensa-consumidor',
+    description: 'Regula el poder punitivo del Estado, tipifica infracciones penales y establece procedimientos.',
+    category: 'Códigos',
+    driveId: '1dMNsqoKp95kzL-hyD_80tH6rDAVqnNTr',
+    url: 'https://drive.google.com/file/d/1dMNsqoKp95kzL-hyD_80tH6rDAVqnNTr/view?usp=sharing',
   },
   {
-    title: 'Guía: ¿Cómo redactar un contrato de arriendo?',
-    type: 'guia',
-    description: 'Paso a paso para elaborar un contrato de arrendamiento válido en Ecuador.',
-    category: 'Guías',
-    url: 'https://www.lexis.com.ec',
+    title: 'Ley de Arbitraje y Mediación',
+    type: 'ley',
+    description: 'Regula el arbitraje y la mediación como medios alternativos de solución de conflictos.',
+    category: 'Leyes',
+    driveId: '1M2tI2b4dEzoSH-G1zK4cPilMxg43rqMA',
+    url: 'https://drive.google.com/file/d/1M2tI2b4dEzoSH-G1zK4cPilMxg43rqMA/view?usp=sharing',
   },
   {
-    title: 'Guía: Derechos laborales básicos del trabajador',
-    type: 'guia',
-    description: 'Lo que todo trabajador en Ecuador debe saber sobre sus derechos fundamentales.',
-    category: 'Guías',
-    url: 'https://www.lexis.com.ec',
+    title: 'Ley de Compañías',
+    type: 'ley',
+    description: 'Regula la constitución, funcionamiento y disolución de compañías en Ecuador.',
+    category: 'Leyes',
+    driveId: '1xpGqzFsFJw7oV3vXyNMstQPOZ7oCYMEx',
+    url: 'https://drive.google.com/file/d/1xpGqzFsFJw7oV3vXyNMstQPOZ7oCYMEx/view?usp=sharing',
   },
   {
-    title: 'Modelo: Demanda de alimentos',
-    type: 'modelo',
-    description: 'Formato base para una demanda de pensión alimenticia ante juez de familia.',
-    category: 'Modelos',
-    url: 'https://www.lexis.com.ec',
+    title: 'LOEP — Ley Orgánica de Empleo Público',
+    type: 'ley',
+    description: 'Regula el empleo público, la carrera administrativa y la gestión de personas del Estado.',
+    category: 'Leyes',
+    driveId: '17XjsE8IOpMZyJ5NG355Mt7gjUlaAZkSM',
+    url: 'https://drive.google.com/file/d/17XjsE8IOpMZyJ5NG355Mt7gjUlaAZkSM/view?usp=sharing',
   },
   {
-    title: 'Modelo: Contrato de trabajo a plazo fijo',
-    type: 'modelo',
-    description: 'Plantilla editable de contrato laboral conforme al Código del Trabajo ecuatoriano.',
-    category: 'Modelos',
-    url: 'https://www.lexis.com.ec',
+    title: 'LOSEP — Ley Orgánica de Servicio Público',
+    type: 'ley',
+    description: 'Regula el servicio público, la carrera y el régimen laboral de las servidoras y servidores.',
+    category: 'Leyes',
+    driveId: '1EjtQ3vU_jTPthkysJFEgDAxqaponmlmN',
+    url: 'https://drive.google.com/file/d/1EjtQ3vU_jTPthkysJFEgDAxqaponmlmN/view?usp=sharing',
   },
 ];
 
-const categories = ['Todos', 'Constitución', 'Códigos', 'Leyes Orgánicas', 'Guías', 'Modelos', 'Glosario'];
+const categories = ['Todos', 'Constitución', 'Códigos', 'Leyes', 'Glosario'];
 
 const typeLabels: Record<string, string> = {
   ley: 'LEY / CÓDIGO',
-  guia: 'GUÍA PRÁCTICA',
-  modelo: 'MODELO / PLANTILLA',
   glosario: 'GLOSARIO',
 };
+
+function ResourceModal({ resource, close }: { resource: Resource; close: () => void }) {
+  return (
+    <div className="dialog-bg" onClick={close}>
+      <div className="resource-viewer" onClick={(e) => e.stopPropagation()}>
+        <div className="resource-viewer-top">
+          <div>
+            <h2>{resource.title}</h2>
+            <small>{typeLabels[resource.type]}</small>
+          </div>
+          <button className="close-btn" onClick={close} aria-label="Cerrar">
+            <X size={18} />
+          </button>
+        </div>
+        <iframe
+          src={`https://drive.google.com/file/d/${resource.driveId}/preview`}
+          title={resource.title}
+          allow="autoplay"
+          className="resource-viewer-frame"
+        />
+        <div className="resource-viewer-actions">
+          <a
+            className="landing-btn compact"
+            href={`https://drive.google.com/uc?export=download&id=${resource.driveId}`}
+            download
+          >
+            <Download size={14} /> Descargar
+          </a>
+          <a className="landing-btn secondary compact" href={resource.url} target="_blank" rel="noopener noreferrer">
+            <ExternalLink size={14} /> Abrir en Drive
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function BibliotecaContent() {
   const searchParams = useSearchParams();
@@ -139,6 +224,7 @@ function BibliotecaContent() {
 
   const [activeCategory, setActiveCategory] = useState('Todos');
   const [search, setSearch] = useState(initialQuery);
+  const [viewer, setViewer] = useState<Resource | null>(null);
 
   useEffect(() => {
     if (initialQuery) setSearch(initialQuery);
@@ -164,7 +250,7 @@ function BibliotecaContent() {
       <p className="eyebrow">BIBLIOTECA JURÍDICA</p>
       <h1>Recursos legales de Ecuador</h1>
       <p className="lead">
-        Accede a leyes, códigos, guías prácticas y modelos de documentos del ordenamiento jurídico ecuatoriano.
+        Consulta y descarga la normativa ecuatoriana directamente desde la app: códigos, leyes y glosario jurídico.
       </p>
 
       {/* Search */}
@@ -230,14 +316,14 @@ function BibliotecaContent() {
         <>
           {/* Resource Grid */}
           <div className="resource-grid">
-            {filtered.map((r, i) => (
-              <article className="resource-card" key={i}>
+            {filtered.map((r) => (
+              <article className="resource-card" key={r.driveId}>
                 <span className="resource-type">{typeLabels[r.type]}</span>
                 <h3>{r.title}</h3>
                 <p>{r.description}</p>
-                <a href={r.url} target="_blank" rel="noopener noreferrer">
-                  Consultar recurso <ExternalLink size={14} />
-                </a>
+                <button className="resource-open" onClick={() => setViewer(r)}>
+                  <BookOpen size={14} /> Leer en la app
+                </button>
               </article>
             ))}
           </div>
@@ -249,6 +335,8 @@ function BibliotecaContent() {
           )}
         </>
       )}
+
+      {viewer && <ResourceModal resource={viewer} close={() => setViewer(null)} />}
     </section>
   );
 }
