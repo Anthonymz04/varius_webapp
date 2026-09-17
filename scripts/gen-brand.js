@@ -86,12 +86,6 @@ async function run() {
     '<g transform="translate(' + tx + ' ' + ty + ') scale(' + (s).toFixed(4) + ')"><path d="' + isoD + '" fill="' + BRAND + '"/></g></svg>';
   fs.writeFileSync(path.join(__dirname, '..', 'public', 'icon.svg'), tile);
 
-  await sharp(Buffer.from(isoMono))
-    .resize(512, 512, { fit: 'contain' })
-    .flatten({ background: 'transparent' })
-    .png()
-    .toFile(path.join(__dirname, '..', 'public', 'splash-logo.png'));
-
   fs.rmSync(iso.file, { force: true });
   fs.rmSync(lock.file, { force: true });
   console.log('brand assets generated from JPEGs:', iso.width + 'x' + iso.height, lock.width + 'x' + lock.height);

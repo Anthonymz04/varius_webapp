@@ -110,9 +110,8 @@ export default function MobileSplash() {
   if (phase === 'splash') {
     return (
       <div className="boot-splash">
-        <img src="/splash-logo.png" alt="VARIUS" className="boot-logo" />
-        <h1>VARIUS</h1>
-        <p>El puente entre aprender, ejercer y acceder al Derecho</p>
+        <img src="/brand/isotipo-mono.svg" alt="VARIUS" className="boot-logo" />
+        <p className="boot-tagline">El puente entre aprender, ejercer y acceder al Derecho</p>
       </div>
     );
   }
@@ -122,7 +121,7 @@ export default function MobileSplash() {
       <>
         <div className="splash-overlay">
           <div className="splash-content">
-            <img src="/splash-logo.png" alt="VARIUS" className="splash-logo" />
+            <img src="/brand/isotipo-mono.svg" alt="VARIUS" className="splash-logo" />
             <h1 className="splash-title">VARIUS</h1>
             <p className="splash-tagline">
               El puente entre aprender, ejercer<br />y acceder al Derecho.
