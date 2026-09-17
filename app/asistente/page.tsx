@@ -291,28 +291,30 @@ function AsistenteChat() {
                               {truncateTitle(c.title)}
                               {c.title.length > 36 && <i className="truncate-tip" title={c.title} />}
                             </b>
+                          </button>
+                          <div className="history-meta">
                             <small>
                               {c.pinned && <Pin size={11} className="pin-indicator" />}
                               {fmtDate(c.updatedAt)}
                             </small>
-                          </button>
-                          <div className="history-actions">
-                            <button
-                              className="history-action"
-                              aria-label={c.pinned ? 'Desanclar' : 'Anclar'}
-                              title={c.pinned ? 'Desanclar' : 'Anclar'}
-                              onClick={() => void togglePin(c)}
-                            >
-                              {c.pinned ? <PinOff size={14} /> : <Pin size={14} />}
-                            </button>
-                            <button
-                              className="history-action danger"
-                              aria-label="Eliminar"
-                              title="Eliminar"
-                              onClick={() => void removeConsultation(c)}
-                            >
-                              <Trash2 size={14} />
-                            </button>
+                            <div className="history-actions">
+                              <button
+                                className="history-action"
+                                aria-label={c.pinned ? 'Desanclar' : 'Anclar'}
+                                title={c.pinned ? 'Desanclar' : 'Anclar'}
+                                onClick={() => void togglePin(c)}
+                              >
+                                {c.pinned ? <PinOff size={14} /> : <Pin size={14} />}
+                              </button>
+                              <button
+                                className="history-action danger"
+                                aria-label="Eliminar"
+                                title="Eliminar"
+                                onClick={() => void removeConsultation(c)}
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
                           </div>
                         </div>
                       ))}

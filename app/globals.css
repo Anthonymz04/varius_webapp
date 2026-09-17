@@ -1278,9 +1278,9 @@ h2 {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
+  gap: 8px;
   border-radius: 10px;
-  padding: 2px 6px;
+  padding: 4px 6px;
 }
 
 .history-item.active {
@@ -1294,43 +1294,10 @@ h2 {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 8px 6px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  justify-content: center;
-}
-
-.history-item .history-actions {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-}
-
-.history-action {
-  width: 24px;
-  height: 24px;
-  flex-shrink: 0;
-  border-radius: 6px;
-  border: none;
-  background: transparent;
-  color: #999;
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-}
-
-.history-action:hover {
-  background: #f3f0f0;
-  color: #555;
-}
-
-.history-action.danger:hover {
-  background: #fdeceb;
-  color: #c0392b;
+  padding: 6px 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .history-item .history-open b {
@@ -1339,7 +1306,12 @@ h2 {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: block;
   max-width: 100%;
+}
+
+.history-item.active .history-open b {
+  color: var(--brand-dark);
 }
 
 .truncate-tip {
@@ -1356,7 +1328,15 @@ h2 {
   opacity: 0.8;
 }
 
-.history-item .history-open small {
+.history-item .history-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.history-item .history-meta small {
   font-size: 10.5px;
   color: #999;
   display: inline-flex;
@@ -1369,15 +1349,20 @@ h2 {
   flex-shrink: 0;
 }
 
-.history-item.active .history-open b {
-  color: var(--brand-dark);
+.history-item .history-actions {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
 }
 
 .history-action {
-  width: 28px;
-  height: 28px;
+  width: 22px;
+  height: 22px;
   flex-shrink: 0;
-  border-radius: 8px;
+  border-radius: 5px;
   border: none;
   background: transparent;
   color: #999;
