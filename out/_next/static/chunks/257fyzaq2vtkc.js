@@ -1,0 +1,1 @@
+(globalThis.TURBOPACK||(globalThis.TURBOPACK=[])).push(["object"==typeof document?document.currentScript:void 0,43004,e=>{"use strict";var t=e.i(43476);e.s(["default",0,function({width:e="100%",height:s=14,radius:o=8,style:i}){return(0,t.jsx)("div",{className:"skeleton",style:{width:e,height:s,borderRadius:o,...i}})}])}]);
