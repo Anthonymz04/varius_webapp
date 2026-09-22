@@ -4,11 +4,14 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Compass, Home as HomeIcon, MessageCircle, Plus, Users } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
+import { useDeviceType } from '@/app/hooks/useDeviceType';
 
 export default function BottomNav() {
   const pathname = usePathname();
   const { user } = useAuth();
+  const deviceType = useDeviceType();
 
+  if (deviceType === 'desktop') return null;
   if (pathname === '/' && !user) return null;
 
   return (

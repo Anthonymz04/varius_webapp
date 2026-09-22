@@ -32,16 +32,33 @@ export const metadata: Metadata = {
   },
 };
 
+// Inyectar meta viewport inmediatamente para evitar flash de desktop en WebViews
+const viewportMeta = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover';
+
 export const viewport: Viewport = {
-  themeColor: '#b45935',
-  colorScheme: 'light',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
   viewportFit: 'cover',
+  themeColor: '#b45935',
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="es" className={`${manrope.variable} ${jakarta.variable}`}>
       <body>
+        <script
+          dangerouslySetInnerHTML={{ __html: `
+            (function(){
+              var m=document.createElement('meta');
+              m.name='viewport';
+              m.content='${viewportMeta}';
+              document.head.appendChild(m);
+            })();
+            if('serviceWorker' in navigator) window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js'));
+          `}}
+        />
         <AuthProvider>
           <MobileSplash />
           <Header />
@@ -49,11 +66,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <Footer />
           <BottomNav />
         </AuthProvider>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `if('serviceWorker' in navigator) window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js'))`,
-          }}
-        />
       </body>
     </html>
   );

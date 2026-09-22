@@ -1,19 +1,15 @@
 'use client';
-
 import { useAuth } from '@/lib/auth-context';
 import AuthDialog from '@/app/components/AuthDialog';
 import { useEffect, useRef, useState } from 'react';
 import { ArrowRight, Bot, Scale, Users } from 'lucide-react';
 import { App } from '@capacitor/app';
+import { useDeviceType } from '@/app/hooks/useDeviceType';
 
 const ONBOARD_KEY = 'varius.onboarded';
 let launched = false;
 
 type Phase = 'welcome' | 'splash' | 'none';
-
-function isNative(): boolean {
-  return typeof window !== 'undefined' && !!(window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.();
-}
 
 /**
  * Mobile boot experience: first-ever launch shows the welcome screen;
@@ -23,7 +19,7 @@ function isNative(): boolean {
 export default function MobileSplash() {
   const { user, loading } = useAuth();
   const [authOpen, setAuthOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const deviceType = useDeviceType();
   const splashStart = useRef(0);
 
   const [phase, setPhase] = useState<Phase>(() => {
@@ -43,13 +39,6 @@ export default function MobileSplash() {
 
   useEffect(() => {
     launched = true;
-  }, []);
-
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth <= 700);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
   useEffect(() => {
@@ -92,7 +81,7 @@ export default function MobileSplash() {
     };
     document.addEventListener('visibilitychange', onVisibility);
     let appListener: { remove: () => void } | undefined;
-    if (isNative()) {
+    if (deviceType !== 'desktop') {
       App.addListener('appStateChange', ({ isActive }) => {
         if (isActive) forceNone();
       }).then((l) => {
@@ -103,9 +92,9 @@ export default function MobileSplash() {
       document.removeEventListener('visibilitychange', onVisibility);
       appListener?.remove?.();
     };
-  }, [user]);
+  }, [user, deviceType]);
 
-  if (!isMobile) return null;
+  if (deviceType === 'desktop') return null;
 
   if (phase === 'splash') {
     return (
