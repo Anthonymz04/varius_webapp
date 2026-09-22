@@ -3,8 +3,8 @@ import { readdirSync } from 'fs';
 import path from 'path';
 
 const resDir = path.resolve('android/app/src/main/res');
-
 const targets = [];
+
 function walk(dir) {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, entry.name);
@@ -14,7 +14,7 @@ function walk(dir) {
 }
 walk(resDir);
 
-const src = path.resolve('public/icon.svg');
+const src = path.resolve('public/icons/icon-master.png');
 
 for (const target of targets) {
   const m = await sharp(target).metadata();
@@ -28,5 +28,7 @@ for (const target of targets) {
     .png()
     .toFile(path.join(path.dirname(target), 'splash.png'));
   const rel = path.relative(resDir, target);
-  console.log(`replaced ${rel} -> ${m.width}x${m.height} logo ${logoSize}`);
+  console.log(`✓ ${rel} (${m.width}x${m.height}, logo ${logoSize}px)`);
 }
+
+console.log('✅ Splash screens generados');
