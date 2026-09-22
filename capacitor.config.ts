@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.varius.app',
-  appName: 'VARIUS',
+  appName: 'Varius',
   webDir: 'out',
   server: {
     url: 'https://varius-webapp-one.vercel.app',

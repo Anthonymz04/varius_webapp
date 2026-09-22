@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Manrope, Plus_Jakarta_Sans } from 'next/font/google';
 import { AuthProvider } from '@/lib/auth-context';
+import OnlineGuard from '@/app/components/OnlineGuard';
 import Header from '@/app/components/Header';
 import BottomNav from '@/app/components/BottomNav';
 import Footer from '@/app/components/Footer';
@@ -60,11 +61,13 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           `}}
         />
         <AuthProvider>
-          <MobileSplash />
-          <Header />
-          <main>{children}</main>
-          <Footer />
-          <BottomNav />
+          <OnlineGuard>
+            <MobileSplash />
+            <Header />
+            <main>{children}</main>
+            <Footer />
+            <BottomNav />
+          </OnlineGuard>
         </AuthProvider>
       </body>
     </html>

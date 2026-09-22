@@ -5642,4 +5642,70 @@ select.select-field:focus {
   padding: 10px 12px;
 }
 
+/* ===================================================================
+   PANTALLA OFFLINE / SIN CONEXION
+   =================================================================== */
+.offline-container {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.offline-content {
+  text-align: center;
+  max-width: 320px;
+}
+.offline-icon {
+  color: var(--brand);
+  margin: 0 auto 20px;
+  width: 64px;
+  height: 64px;
+}
+.offline-title {
+  font-family: var(--font-manrope);
+  font-weight: 700;
+  font-size: 22px;
+  color: var(--ink);
+  margin: 0 0 12px;
+}
+.offline-message {
+  font-size: 15px;
+  color: #666;
+  line-height: 1.6;
+  margin: 0 0 28px;
+}
+.offline-retry-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--brand);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 28px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-jakarta);
+  transition: opacity .2s;
+}
+.offline-retry-btn:hover {
+  opacity: .9;
+}
+.offline-retry-btn:disabled {
+  opacity: .7;
+  cursor: default;
+}
+.offline-retry-btn .spinning {
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 
