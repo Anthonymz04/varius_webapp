@@ -33,6 +33,7 @@ Nota: el build puede requerir internet SOLO si next/font descarga fuentes por pr
 - Para el logo REAL: reemplazar `public/icon.svg` y correr `npm run icons` (el logo oficial de VARIUS ya está integrado).
 - Para generar el APK: instalar Android Studio, luego `npx cap open android` y Build → APK (o `npx cap build android`). También se puede probar en el emulador de Android Studio.
 - El splash nativo (color + logo al abrir) lo maneja `@capacitor/splash-screen` (config en capacitor.config.ts). El splash web dentro de la app es `MobileSplash` (solo móvil <700px y sin sesión).
+- **Pantalla offline nativa** (`MainActivity.java` + `android/app/src/main/res/layout/offline_screen.xml`): como el WebView carga una URL remota (`server.url`), sin internet la web NUNCA se descarga y cualquier guard offline web no se ejecuta — por eso el error se intercepta en nativo (`onReceivedError` main-frame → overlay "Sin conexión" con botón Reintentar; auto-reintento vía `registerDefaultNetworkCallback`). Requiere permiso `ACCESS_NETWORK_STATE` en el manifest (sin él la app crashea). Nota: Chromium dispara `onPageFinished` también para su propia página de error — NO ocultar el overlay ahí (flag `mainFrameError`). Handshake anti-flash: el WebView arranca con alpha 0 y la capa offline se oculta SOLO cuando la web llama `window.AndroidApp.ready()` (interfaz JS expuesta por `MainActivity`, disparada desde `MobileSplash` cuando el splash vino ya cubre); fallback de seguridad de 6s muestra la web igual. La señal solo funciona con la web desplegada que la incluye.
 - `MobileSplash` es una máquina de estados con flag de módulo `launched` y localStorage `varius.onboarded` (solo como registro): al abrir la app SIEMPRE sale el splash vino (mín 1.2s / máx 1.5s); si no hay sesión → bienvenida "Comenzar ahora" (que abre el AuthDialog sobre la bienvenida, nunca la landing); si hay sesión → dashboard. Al reanudar → `none` (usa `@capacitor/app` appStateChange + visibilitychange).
 - Home móvil autenticado (≤700px): header visible (brand + hamburguesa), saludo 24px sin ✦, línea de actividad en texto, tarjeta IA vino (`.dash-ai-card`) con CTA a /asistente, accesos rápidos 4×2 (`.action-grid`/`.action-card` reestilizados, tile "Más" dispara evento `varius:toggle-menu` que abre el `.mobile-nav`), bottom-nav con safe-area. Secciones de desktop (`.two-col`, `.news`, `.site-footer`) ocultas en móvil. La actividad pasó de `.summary-card` a una sección "Tu actividad" en /perfil (`.profile-activity`).
 
@@ -86,7 +87,7 @@ app/
   hooks/useMisSolicitudes.ts  # hook solicitudes+reservas del usuario
   components/
     NotificationBell.tsx # campanita con notificaciones en tiempo real (Firestore)
-    MobileSplash.tsx    # Splash mobile (<700px): boot blanco/crema con isotipo terracota + wordmark + loader; bienvenida abre AuthDialog
+    MobileSplash.tsx    # Splash mobile (<700px): boot blanco/crema con isotipo terracota + wordmark + loader; bienvenida abre AuthDialog; señala window.AndroidApp.ready() hacia el puente nativo del APK (handshake anti-flash)
     AuthDialog.tsx      # Login/registro por correo/contraseña (Google ELIMINADO) + confirmar contraseña + checkbox/modal de Términos
     TermsModal.tsx      # (creado) Modal flotante scrollable con los Términos y Condiciones (usado en el registro)
     Header.tsx          # Nav desktop con buscador, campanita y píldora "Gratis" → /planes
@@ -162,6 +163,7 @@ out/                    # Placeholder de assets web para Capacitor (modo server.
   4. `git checkout ariel_branch`
 
 ## Cambios recientes (historial de decisiones)
+- feat(android): pantalla offline nativa ("Sin conexión" + Reintentar) en reemplazo del error "Página web no disponible" del WebView + handshake anti-flash nativo-web (`window.AndroidApp.ready()` disparado por MobileSplash; WebView oculto hasta la señal) — verificado en teléfono físico vía adb (2026-09-23)
 - feat(admin): panel de administración en `/admin` — aprueba/rechaza verificaciones de abogado (rol 'admin'), al aprobar crea `lawyers/{uid}` y cambia el rol
 - feat(asesorías): módulo de asesorías — peticiones del chat/marketplace con aceptar/rechazar del abogado (panel en /perfil), chat persistente 1:1 en /mensajes (conversations + subcolección messages, onSnapshot), botón "Buscar otro abogado", notif+historial; se retiró la cola de correos
 - feat(perfil+storage): perfil editable con ciudad/bio, foto de portada y avatar (uploads.ts → covers/{uid}, avatars/{uid}); verificación de abogado con cédula + título PDF (certifications/{uid}/titulo.pdf) visible en el perfil
