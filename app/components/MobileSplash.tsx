@@ -42,6 +42,10 @@ export default function MobileSplash() {
   }, []);
 
   useEffect(() => {
+    (window as unknown as { AndroidApp?: { ready?: () => void } }).AndroidApp?.ready?.();
+  }, [phase]);
+
+  useEffect(() => {
     if (phase !== 'splash') return;
     splashStart.current = Date.now();
     const t = setTimeout(() => setPhase('none'), 2400);
