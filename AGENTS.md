@@ -61,6 +61,9 @@ NEXT_PUBLIC_FIREBASE_APP_ID=
 OPENAI_API_KEY=        # key de B.AI (sk-...)
 OPENAI_BASE_URL=       # https://api.b.ai/v1 (default si se omite)
 OPENAI_MODEL=          # deepseek-v4-flash (default si se omite)
+NEXT_PUBLIC_SUPABASE_URL=            # https://xxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=       # anon/public key
+NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET= # uploads (default si se omite)
 ```
 `lib/firebase/client.ts` expone `isFirebaseConfigured` — la app funciona sin Firebase mostrando el aviso "Firebase no está configurado".
 - **AI / chatbot**: usa el SDK de OpenAI apuntando a B.AI (OpenAI-compatible) en `app/api/ai/route.ts`. `baseURL` = `OPENAI_BASE_URL` o `https://api.b.ai/v1`; modelo = `OPENAI_MODEL` o `deepseek-v4-flash`. Si el modelo devuelve solo `reasoning_content` (modo thinking), se usa como fallback.
@@ -101,7 +104,8 @@ lib/
   auth-context.tsx      # useAuth() → { user, role, loading, signOut, reloadRole }; red de seguridad que crea users/{uid} si falta
   firebase/client.ts    # init Firebase / flag isFirebaseConfigured / storage
   firebase/profile.ts   # users/{uid} (createProfile, updateProfileFields, fetchUserProfile)
-  firebase/uploads.ts   # (creado) subidas a Storage: cover, avatar, certificado PDF
+  firebase/uploads.ts   # subidas de archivos: cover, avatar, certificado PDF, CV, adjuntos chat → ahora escribe en Supabase Storage
+  supabase/client.ts    # (creado) cliente Supabase + isSupabaseConfigured + STORAGE_BUCKET ('uploads')
   firebase/consultations.ts  # colección consultations (historial chat IA) + pinned + deleteConsultation
   firebase/marketplace.ts    # lawyers + lawyer_requests (sin correo; notif+historial)
   firebase/social.ts         # (creado) lawyer_reviews (reseñas) + lawyer_favorites (favoritos)

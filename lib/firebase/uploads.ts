@@ -1,33 +1,23 @@
 'use client';
 
-import { getDownloadURL, ref, uploadBytesResumable } from 'firebase/storage';
-import { storage } from '@/lib/firebase/client';
+import { supabase, STORAGE_BUCKET } from '@/lib/supabase/client';
 
 export async function uploadFile(
   file: File,
   path: string,
   onProgress?: (percent: number) => void
 ): Promise<string> {
-  if (!storage) throw new Error('Firebase no está configurado.');
-  const fileRef = ref(storage, path);
-  const task = uploadBytesResumable(fileRef, file);
-  const url = await new Promise<string>((resolve, reject) => {
-    task.on(
-      'state_changed',
-      (snap) => {
-        if (onProgress) onProgress(Math.round((snap.bytesTransferred / snap.totalBytes) * 100));
-      },
-      (error) => reject(error),
-      async () => {
-        try {
-          resolve(await getDownloadURL(task.snapshot.ref));
-        } catch (e) {
-          reject(e);
-        }
-      }
-    );
+  if (!supabase) throw new Error('Supabase no está configurado (NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY).');
+  if (onProgress) onProgress(0);
+  const { error } = await supabase.storage.from(STORAGE_BUCKET).upload(path, file, {
+    contentType: file.type || 'application/octet-stream',
+    cacheControl: '3600',
+    upsert: true,
   });
-  return url;
+  if (error) throw new Error(error.message);
+  if (onProgress) onProgress(100);
+  const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+  return data.publicUrl;
 }
 
 export function uploadCover(uid: string, file: File, onProgress?: (percent: number) => void) {
